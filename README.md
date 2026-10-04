@@ -11,7 +11,7 @@
 |---|---|
 | `rngdle_score.exe` | 单文件计分器（静态链接，只依赖系统自带的 UCRT）。输入 0~1000000，输出 EP / 百分位 / 等级 / 徽章列表，并生成与官网同构的抽奖动画结果页 |
 | 结果页 `rngdle_result.html` | 复刻官网视觉与动画：数字滚动逐位定格、徽章自下而上逐个弹出（每枚弹出时播放一次高亮数字展示）、EP 累加、等级与百分位揭示、七档稀有度配色、暗色主题、分享文案复制 |
-| `rngdle_server`（exe 或 .py） | 本地服务器（默认 http://127.0.0.1:8765/）：**配置页**可改抽取模式并写回 `config.json`，`GENERATE` 按配置抽一次；结果页右上角有 ✕ 与「跳过动画」 |
+| `rngdle_server.py` | 本地服务器（默认 `http://127.0.0.1:8765/`）：**配置页**可改抽取模式并写回 `config.json`，`GENERATE` 按配置抽一次；结果页右上角有 ✕ 与「跳过动画」 |
 | `rngdle-intercept/` | Chrome 扩展（MV3）：在官网点 `GENERATE` 时改为展示本地结果页，可无限抽取、可跳过动画 |
 
 ## 抽取模式（配置页 / `config.json`）
@@ -38,8 +38,8 @@
 
 ### 方式二：本地服务器 + 配置页（推荐）
 
-双击 **`启动服务器.bat`**（或手动运行 `rngdle_server.exe` / `runtime\python.exe rngdle_server.py`），
-浏览器会打开 <http://127.0.0.1:8765/> 的配置页：选模式 → 填参数 → 保存配置 → 点 `GENERATE`。
+双击 **`启动服务器.bat`**（它用自带的便携运行时启动服务器；也可手动执行 `runtime\python.exe rngdle_server.py`），
+浏览器会打开 `http://127.0.0.1:8765/` 的配置页：选模式 → 填参数 → 保存配置 → 点 `GENERATE`。
 
 - 端口可用环境变量改：`set RNGDLE_PORT=8770`
 - 可用端点：`GET /`（配置页）、`GET/POST /config`（读写配置）、`GET /index`（EP 索引状态）、
@@ -58,8 +58,8 @@
 
 ```
 rngdle_score.exe        计分器（单文件，免安装）
-rngdle_server.exe       本地服务器（单文件打包版；也可用 runtime\python.exe rngdle_server.py）
-runtime\                便携 Python 运行时（仅当使用 rngdle_server.py 时需要）
+rngdle_server.py        本地服务器（用 runtime\python.exe 运行）
+runtime\                便携 Python 运行时（服务器需要；只跑计分器可以不装）
 rngdle-intercept\       Chrome 扩展：manifest.json / content.js / background.js
 config.example.json     配置模板；首次运行会按默认值生成 config.json（本地文件，不必提交）
 ep_index.bin            全量 EP 索引缓存（自动生成，可随时删除）
@@ -68,6 +68,12 @@ rngdle_result.html      结果页（每次运行覆盖）
 
 源码仓库里的 `rngdle_score.cpp` 是计分器全部逻辑（含内联的 60392 组百分位数据、210 枚徽章定义、
 结果页 HTML/CSS/JS 生成器）；`rngdle_server.py` 是本地服务器与配置页。
+
+## 免安装发布包
+
+`python make_release.py` 会组装出 `release/RNGdle/` 并生成 `RNGdle_standalone_v<版本>_win64.zip`：
+内含上面的文件、便携 CPython 运行时与一键启动脚本，**目标机器无需安装 Python、编译器或任何运行库**
+（`rngdle_score.exe` 静态链接，只依赖 Windows 自带的 UCRT）。
 
 ## 从源码构建
 
@@ -81,7 +87,7 @@ g++ -static -O2 -std=c++11 rngdle_score.cpp -o rngdle_score.exe -lwinmm -lpthrea
 
 ## 已知限制
 
-- 仅支持 Windows（计分器与打包好的服务器都是 Windows 程序）。
+- 仅支持 Windows：计分器是 Windows 程序，服务器也要调用它（且用了 Windows 专有的 `CREATE_NO_WINDOW`）。
 - 结果页的计分规则、徽章文案、配色与动画时序按 2026-10 抓取的官网前端源码复刻；官网改版后可能不一致。
 - 插件的点击判定依赖官网 `GENERATE` 按钮的语义（`button`/`[role=button]`/`a[href]`，自身短文本或 `aria-label` 含 generate）；官网改版后可能需要更新选择器。
 - `ep_range` / `tier` 的首次索引建立约 40 秒（一次性）。
