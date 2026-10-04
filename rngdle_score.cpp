@@ -16682,13 +16682,13 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "main{flex:1;width:100%;margin:0 auto;padding:8px 8px 16px}\n";
     h += "@media(min-width:640px){main{padding:32px}}\n";
     h += ".page{max-width:672px;margin:0 auto;padding:0 16px 16px}\n";
-    // 数字卡
-    h += ".numcard{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;width:208px;height:93px;border-radius:12px;border:3px solid var(--tb);background:var(--g);box-shadow:var(--glow),var(--ig);transition:all .5s;animation:num-breathe 3s ease-in-out infinite}\n";
+    // 数字卡（框样式与第一版一致：fit-content 自适应、padding 20px 32px；数字 36px 恒定）
+    h += ".numcard{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;width:fit-content;max-width:100%;padding:20px 32px;border-radius:12px;border:3px solid var(--tb);background:var(--g);box-shadow:var(--glow),var(--ig);transition:all .5s;animation:num-breathe 3s ease-in-out infinite}\n";
     h += "@keyframes num-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}\n";
     // 官网 finale-pulse：数字全部确定（number:collapse）与徽章全出（rarity:reveal）时数字卡各脉冲一次
     h += "@keyframes finale-pulse{0%{transform:scale(1)}15%{transform:scale(1.25)}40%{transform:scale(.98)}60%{transform:scale(1.03)}to{transform:scale(1)}}\n";
     h += ".numcard.finale-pulse{animation:finale-pulse .7s ease-out}\n";
-        h += ".num{font-family:var(--font-roll);font-weight:700;font-size:36px;line-height:1.1;display:flex;gap:0;color:var(--tx);text-shadow:0 1px 2px rgba(255,255,255,.5);font-variant-numeric:tabular-nums;transition:font-size .5s ease}\n";
+        h += ".num{font-family:var(--font-roll);font-weight:700;font-size:36px;line-height:1.1;display:flex;gap:0;color:var(--tx);text-shadow:0 1px 2px rgba(255,255,255,.5);font-variant-numeric:tabular-nums}\n";
     h += ".dark .num{text-shadow:0 1px 2px rgba(255,255,255,.15)}\n";
     h += ".numcard::before{content:'';position:absolute;inset:-1px;pointer-events:none;border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.4) 0%,rgba(255,255,255,.1) 40%,transparent 60%)}\n";
     h += ".dark .numcard::before{opacity:.4}\n";
@@ -16769,13 +16769,10 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 数字滚动/揭示状态（复刻官网 digit-spin / digit-settle）
     h += ".num span.spin{color:var(--prose-3)}\n";
     h += ".num span.blank{opacity:0;transition:width .5s ease,opacity .5s ease}\n";
-    // 官网 ShinyNumberArtifact collapseLeadingBlanks：位数<6 时数字全部揭示后收起前导空白位，
-    // 数字放大填充固定尺寸的结果框（框 208x93 恒定不变，数字居中放大）
-    // 字号：6 位 text-4xl(36px)、5 位 text-5xl(48px)；1~4 位防溢出统一 48px（官网 60/72px 超出固定框）
+    // 位数<6 时数字全部揭示后收起前导空白位：框为 fit-content（第一版自适应样式），
+    // 数字保持 36px 恒定；收起后框宽收敛到实际数字宽度
     h += ".num.collapsed span.blank{width:0;overflow:hidden;opacity:0}\n";
-    h += ".num[data-y='5'].collapsed{font-size:48px}\n";
-    h += ".num[data-y='4'].collapsed,.num[data-y='3'].collapsed,.num[data-y='2'].collapsed,.num[data-y='1'].collapsed{font-size:48px}\n";
-    h += "@media(max-width:640px){.numcard{width:176px;height:80px}.num{font-size:30px}.num[data-y='5'].collapsed,.num[data-y='4'].collapsed,.num[data-y='3'].collapsed,.num[data-y='2'].collapsed,.num[data-y='1'].collapsed{font-size:40px}}\n";
+    h += "@media(max-width:640px){.num{font-size:30px}.numcard{padding:16px 20px}}\n";
     h += ".num span.settle{animation:digit-settle .4s ease-out}\n";
     h += "@keyframes digit-settle{0%{text-shadow:0 0 8px rgba(255,255,255,.9);transform:scale(1.5)}to{text-shadow:0 1px 2px rgba(255,255,255,.5);transform:scale(1)}}\n";
     h += ".dark .num span.settle{animation:digit-settle-dark .4s ease-out}\n";
@@ -16804,17 +16801,18 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // ===== 数字卡（逐位数字，官网同款）=====
     // 动画版：初始统一 t-common 灰色（官网 showRarityStyle=false 时用 NEUTRAL_ARTIFACT_STYLE），
     // rarity:reveal 时才切换到最终品质色（data-tier 保存最终等级）；
-    // 静态版（--no-anim）：直接显示终值数字与最终品质色，数字按位数放大态（collapsed）展示
+    // 静态版（--no-anim）：直接显示终值数字与最终品质色
+    // 框样式与第一版一致：fit-content 自适应 + padding 20px 32px，数字 36px 恒定
     std::string ns = std::to_string(n);
     int slots = (int)ns.size() > 6 ? (int)ns.size() : 6;
     if (anim) {
-        h += "<div class=\"numcard t-common\" data-tier=\"" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\" data-y=\"" + std::to_string((int)ns.size()) + "\">";
+        h += "<div class=\"numcard t-common\" data-tier=\"" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\">";
         // 抽奖动画：官网固定槽位数 r = max(6, 位数)，前导位为空白位（揭示后透明占位）。
         // 初始全部显示 ? 并滚动，JS 按官网时序逐位揭示为终值（见文件末动画脚本）
         for (int i = 0; i < slots; i++) h += "<span>?</span>";
         h += "</div>\n</div>\n";
     } else {
-        h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num collapsed\" data-y=\"" + std::to_string((int)ns.size()) + "\">" + ns + "</div>\n</div>\n";
+        h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\">" + ns + "</div>\n</div>\n";
     }
 
     // ===== 等级 + 百分位（初始隐藏，数字定住后淡入）=====
@@ -16996,7 +16994,8 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  if(i<slots)t+=digitDelay(i-1,slots);\n";
     h += "}\n";
     // 2b) 官网 pulseKey：number:collapse（数字全部确定）与 rarity:reveal（徽章全出）时，
-    // 数字卡各触发一次 animate-finale-pulse（0.7s：scale 1→1.25→0.98→1.03→1 迅速放大后恢复）
+    // 数字卡各触发一次 animate-finale-pulse（0.7s：scale 1→1.25→0.98→1.03→1 迅速放大后恢复）；
+    // 位数<6 时同时收起前导空白位，使 fit-content 框收敛到实际数字宽度（第一版框样式）
     h += "var nc0=document.querySelector('.numcard');\n";
     h += "function finalePulse(){if(nc0){nc0.classList.add('finale-pulse');setTimeout(function(){nc0.classList.remove('finale-pulse');},700);}}\n";
     h += "setTimeout(function(){if(nums.length<6)numEl.classList.add('collapsed');finalePulse();},t+20);\n";
