@@ -16748,6 +16748,11 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);z-index:999999999;display:flex;align-items:center;gap:6px;padding:16px;border-radius:8px;background:#000;color:#fff;border:1px solid var(--outline-strong);box-shadow:0 4px 12px rgba(0,0,0,.1);font-size:13px;font-weight:400;line-height:1.4;opacity:0;transition:transform .4s ease,opacity .4s ease;pointer-events:none}\n";
     h += ".toast.show{opacity:1;transform:translateX(-50%) translateY(0)}\n";
     h += ".toast svg{flex:none;width:16px;height:16px;color:#fff}\n";
+    // 抽奖动画：等待显示（隐藏）→ 显示
+    h += ".anim-wait{opacity:0;transform:translateY(8px)}\n";
+    h += ".anim-in{opacity:1!important;transform:none!important;transition:opacity .5s ease,transform .5s ease}\n";
+    // 数字位定宽，滚动翻转时版式不跳动
+    h += ".num>span{min-width:.62em;display:inline-block;text-align:center}\n";
     h += "@media(max-width:480px){main{padding:8px 8px 16px}.numcard{padding:20px 16px}}\n";
     h += "@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.numcard{animation:num-breathe 3s ease-in-out infinite!important}}\n";
     h += "</style>\n</head>\n<body>\n";
@@ -16767,18 +16772,19 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // ===== 数字卡（逐位数字，官网同款）=====
     h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\">";
     std::string ns = std::to_string(n);
-    for (size_t i = 0; i < ns.size(); i++) h += std::string("<span>") + ns[i] + "</span>";
+    // 抽奖动画：初始显示 ?，JS 逐位翻转滚动至终值（见文件末动画脚本）
+    for (size_t i = 0; i < ns.size(); i++) h += "<span>?</span>";
     h += "</div>\n</div>\n";
 
-    // ===== 等级 + 百分位 =====
-    h += "<div class=\"meta t-" + tier + "\">\n";
+    // ===== 等级 + 百分位（初始隐藏，数字定住后淡入）=====
+    h += "<div class=\"meta anim-wait t-" + tier + "\">\n";
     h += "<span class=\"pill\">" + upper(tier) + "</span>\n";
     h += "<span class=\"sep\">•</span>\n";
     h += std::string("<span class=\"pct ") + pctCls + "\">" + pctText + "</span>\n</div>\n";
 
-    // ===== EP =====
+    // ===== EP（初始 0，动画递增至终值）=====
     h += "<div class=\"eprow\">\n";
-    h += "<div class=\"ep-pill t-" + tier + "\">" + withCommas(total) + " EP</div>\n";
+    h += "<div class=\"ep-pill t-" + tier + "\">0 EP</div>\n";
     h += "<div class=\"life\"><b>0 EP</b><span>Your lifetime EP</span></div>\n";
     h += "</div>\n";
 
@@ -16797,7 +16803,8 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
         const Badge* b = ordered[i];
         std::string bt = badgeTier(b->score);
         h += "<div class=\"bgroup\">\n";
-        h += "<div class=\"bcard t-" + bt + "\">\n";
+        // 徽章卡初始隐藏，数字定住后逐个出现（stagger 170ms）
+        h += "<div class=\"bcard anim-wait t-" + bt + "\">\n";
         h += "<div class=\"bhead\"><div class=\"btitle\"><span class=\"bemoji\">" + std::string(emojiOf(b->id)) + "</span><span class=\"bname\">" + b->label + "</span><span class=\"pill bpill\">" + upper(bt) + "</span></div><span class=\"bep\">+" + withCommas(b->score) + " EP</span></div>\n";
         h += "<p class=\"bdesc\">" + std::string(descOf(b->id)) + "</p>\n";
         // 官网 BadgeEvidence：DivisibleBy 类显示等式（{n} = {d} × {q}），PRONIC 显示 a×(a+1)
@@ -16877,6 +16884,39 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     if (rseq.size() > 3) shareText += "+" + std::to_string((int)rseq.size() - 3) + " more\n";
     shareText += "\n" + withCommas(total) + " EP\nhttps://rngdle.com";
     h += "<pre id=\"share-text\" hidden>" + shareText + "</pre>\n";
+
+    // ===== 抽奖动画：数字逐位出现 → 等级/百分位淡入 → EP 递增 → 徽章逐个出现 =====
+    // 与官网一致：数字位一起快速滚动，从高位到低位逐个锁定终值（每 80ms 一帧）
+    h += "<script>\n";
+    h += "(function(){\n";
+    h += "var nums=["; for (size_t i = 0; i < ns.size(); i++) { h += std::string("'") + ns[i] + "',"; } h += "];\n";
+    h += "var total=" + std::to_string(total) + ";\n";
+    h += "var digs=[].slice.call(document.querySelectorAll('.num>span'));\n";
+    h += "var meta=document.querySelector('.meta');\n";
+    h += "var ep=document.querySelector('.ep-pill');\n";
+    h += "var cards=[].slice.call(document.querySelectorAll('.bcard'));\n";
+    h += "var lockStep=9,frames=0,lastLock=(digs.length-1)*lockStep;\n";
+    h += "var iv=setInterval(function(){\n";
+    h += "  frames++;\n";
+    h += "  for(var i=0;i<digs.length;i++){\n";
+    h += "    if(frames>=i*lockStep) digs[i].textContent=nums[i];\n";
+    h += "    else digs[i].textContent=String(Math.floor(Math.random()*10));\n";
+    h += "  }\n";
+    h += "  if(frames>=lastLock){\n";
+    h += "    clearInterval(iv);\n";
+    h += "    if(meta) meta.classList.add('anim-in');\n";
+    h += "    var t0=Date.now(),ms=1600;\n";
+    h += "    var ti=setInterval(function(){\n";
+    h += "      var p=Math.min(1,(Date.now()-t0)/ms);\n";
+    h += "      var v=Math.round(total*(1-Math.pow(1-p,3)));\n";
+    h += "      if(ep) ep.textContent=v.toLocaleString('en-US')+' EP';\n";
+    h += "      if(p>=1){clearInterval(ti);if(ep) ep.textContent=total.toLocaleString('en-US')+' EP';}\n";
+    h += "    },40);\n";
+    h += "    cards.forEach(function(c,i){setTimeout(function(){c.classList.add('anim-in')},350+i*170);});\n";
+    h += "  }\n";
+    h += "},80);\n";
+    h += "})();\n";
+    h += "</script>\n";
 
     h += "<div class=\"toast\" id=\"toast\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/></svg><span>Copied to clipboard</span></div>\n";
     h += "<script>\n";
