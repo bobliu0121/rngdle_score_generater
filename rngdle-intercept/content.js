@@ -6,15 +6,26 @@
   const SERVER = "http://127.0.0.1:8765";
   let busy = false;
 
-  // 官网的 GENERATE 按钮（button / [role=button] / 带 generate 文本的元素）
+  // 只有点中 GENERATE 按钮（按钮自身或其内部元素）才算数。
+  // 注意：绝不能把「closest 取不到按钮时的被点元素」当按钮来判——点页面空白处时目标是
+  // <body>/大容器，它们的 textContent 里含按钮文字 "GENERATE"，会导致整页任意位置都被拦截。
   function isGenerateButton(el) {
-    if (!el || el.nodeType !== 1) return false;
-    const b = el.closest("button, [role=button]") || el;
-    const t = (b.textContent || "").toLowerCase();
-    const aria = (b.getAttribute && (b.getAttribute("aria-label") || "")) || "";
-    const cls = b.className && typeof b.className === "string" ? b.className.toLowerCase() : "";
+    if (!el || el.nodeType !== 1 || typeof el.closest !== "function") return false;
+    const b = el.closest('button, [role="button"], a[href]');
+    if (!b) return false; // 不在按钮/链接里，一律不拦截
+    const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+    // 只认按钮自身的文字，且要求很短（真按钮的标签就几个字），避免容器的整段文本命中
+    const t = norm(b.textContent);
+    const textHit = t.length > 0 && t.length <= 20 && t.indexOf("generate") >= 0;
+    const ariaHit = norm(b.getAttribute && b.getAttribute("aria-label")).indexOf("generate") >= 0;
+    const dtHit = norm(b.getAttribute && b.getAttribute("data-testid")).indexOf("generate") >= 0;
+    // class/id 只在真按钮上按词匹配，避免 <a id="generate-xxx"> 这类链接容器误命中
+    const isBtnLike = b.tagName === "BUTTON" || (b.getAttribute && b.getAttribute("role") === "button");
+    // 按词匹配，避免 "generated-xxx" 这类误命中
+    const word = /(^|[^a-z])generate([^a-z]|$)/;
+    const cls = typeof b.className === "string" ? b.className.toLowerCase() : "";
     const id = (b.id || "").toLowerCase();
-    return /generate/.test(t) || /generate/.test(aria) || /generate/.test(cls) || /generate/.test(id);
+    return textHit || ariaHit || dtHit || (isBtnLike && (word.test(cls) || word.test(id)));
   }
 
   // 全屏 iframe 覆盖官网，展示本地结果页（srcdoc 隔离，动画不受官网脚本干扰）；

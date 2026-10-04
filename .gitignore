@@ -10,6 +10,10 @@ _verify/
 # 百分位数据文件（已内联进 rngdle_score.cpp，无需提交）
 *.dat
 
+# 全量 EP 索引缓存（服务端用 exe --batch 生成，可随时重建）
+ep_index.bin
+ep_index.bin.*
+
 # Python 缓存
 __pycache__/
 
