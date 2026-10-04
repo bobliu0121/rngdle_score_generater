@@ -16752,7 +16752,19 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".anim-wait{opacity:0;transform:translateY(8px)}\n";
     h += ".anim-in{opacity:1!important;transform:none!important;transition:opacity .5s ease,transform .5s ease}\n";
     // 数字位定宽，滚动翻转时版式不跳动
-    h += ".num>span{min-width:.62em;display:inline-block;text-align:center}\n";
+    h += ".num>span{min-width:.62em;display:inline-block;text-align:center;transition:color .4s,text-shadow .4s,transform .4s}\n";
+    // 数字滚动/揭示状态（复刻官网 digit-spin / digit-settle）
+    h += ".num span.spin{color:var(--prose-3)}\n";
+    h += ".num span.blank{opacity:0}\n";
+    h += ".num span.settle{animation:digit-settle .4s ease-out}\n";
+    h += "@keyframes digit-settle{0%{text-shadow:0 0 8px rgba(255,255,255,.9);transform:scale(1.5)}to{text-shadow:0 1px 2px rgba(255,255,255,.5);transform:scale(1)}}\n";
+    h += ".dark .num span.settle{animation:digit-settle-dark .4s ease-out}\n";
+    h += "@keyframes digit-settle-dark{0%{text-shadow:0 0 8px rgba(255,255,255,.35);transform:scale(1.5)}to{text-shadow:0 1px 2px rgba(255,255,255,.15);transform:scale(1)}}\n";
+    // 徽章卡出现动画（复刻官网 gsap fromTo：opacity 0→1、y -20→0、scale .98→1，0.35s power2.out）
+    h += ".bgroup{opacity:0;transform:translateY(-20px) scale(.98)}\n";
+    h += ".bgroup.in{opacity:1;transform:none;transition:opacity .35s ease,transform .35s cubic-bezier(.25,.46,.45,.94)}\n";
+    // 桌面隐藏 lifetime 行（官网桌面版无 lifetime EP，手机版才显示）
+    h += "@media(min-width:640px){.life{display:none}}\n";
     h += "@media(max-width:480px){main{padding:8px 8px 16px}.numcard{padding:20px 16px}}\n";
     h += "@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.numcard{animation:num-breathe 3s ease-in-out infinite!important}}\n";
     h += "</style>\n</head>\n<body>\n";
@@ -16772,8 +16784,10 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // ===== 数字卡（逐位数字，官网同款）=====
     h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\">";
     std::string ns = std::to_string(n);
-    // 抽奖动画：初始显示 ?，JS 逐位翻转滚动至终值（见文件末动画脚本）
-    for (size_t i = 0; i < ns.size(); i++) h += "<span>?</span>";
+    // 抽奖动画：官网固定槽位数 r = max(6, 位数)，前导位为空白位（揭示后透明占位）。
+    // 初始全部显示 ? 并滚动，JS 按官网时序逐位揭示为终值（见文件末动画脚本）
+    int slots = (int)ns.size() > 6 ? (int)ns.size() : 6;
+    for (int i = 0; i < slots; i++) h += "<span>?</span>";
     h += "</div>\n</div>\n";
 
     // ===== 等级 + 百分位（初始隐藏，数字定住后淡入）=====
@@ -16788,23 +16802,37 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "<div class=\"life\"><b>0 EP</b><span>Your lifetime EP</span></div>\n";
     h += "</div>\n";
 
-    // ===== 操作行 =====
-    h += "<div class=\"actions\">\n<div class=\"action-row\">\n";
+    // ===== 操作行（官网 stats:show 时整体淡入：SHARE / NEXT ROLL / SIGN UP）=====
+    h += "<div class=\"actions anim-wait\">\n<div class=\"action-row\">\n";
     h += "<button class=\"share-btn\" type=\"button\" onclick=\"copyShare()\"><svg id=\"share-ic\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"18\" cy=\"5\" r=\"3\"/><circle cx=\"6\" cy=\"12\" r=\"3\"/><circle cx=\"18\" cy=\"19\" r=\"3\"/><line x1=\"8.59\" x2=\"15.42\" y1=\"13.51\" y2=\"17.49\"/><line x1=\"15.41\" x2=\"8.59\" y1=\"6.51\" y2=\"10.49\"/></svg><span class=\"share-txt\" id=\"share-txt\">Share</span></button>\n";
-    h += "<div class=\"nextroll anim-wait\"><span>Next roll in</span><b id=\"countdown\">--h --m --s</b></div>\n";
+    h += "<div class=\"nextroll\"><span>Next roll in</span><b id=\"countdown\">--h --m --s</b></div>\n";
     h += "</div>\n";
     h += "<a class=\"save-note\" href=\"https://www.rngdle.com/\">Sign up to save future rolls — this one can't be saved</a>\n";
     h += "</div>\n";
 
     // ===== Badge Breakdown =====
     h += "<div class=\"bd\">\n<h2>Badge Breakdown</h2>\n";
-    h += "<div class=\"bd-sub\"><b>" + std::to_string((int)earned.size()) + " badges earned</b></div>\n";
-    for (size_t i = 0; i < ordered.size(); i++) {
-        const Badge* b = ordered[i];
+    h += "<div class=\"bd-sub anim-wait\"><b>" + std::to_string((int)earned.size()) + " badges earned</b></div>\n";
+    h += "<div id=\"badge-list\"></div>\n";
+    // 徽章卡以 <template> 输出：JS 按出现序（score 升序、同分按官网显示序 displayRank 升序）
+    // 逐个克隆插入 #badge-list，并按 score 降序定位（实时重排），复刻官网
+    // eW(升序逐个出现) + 渲染列表实时降序排列的动画效果。
+    std::vector<const Badge*> appear = ordered;
+    std::sort(appear.begin(), appear.end(),
+              [](const Badge* a, const Badge* b) {
+                  if (a->score != b->score) return a->score < b->score;
+                  int ra = displayRank(a->id), rb = displayRank(b->id);
+                  if (ra != rb) return ra < rb;
+                  return (a - &BADGES[0]) < (b - &BADGES[0]);
+              });
+    for (size_t i = 0; i < appear.size(); i++) {
+        const Badge* b = appear[i];
         std::string bt = badgeTier(b->score);
-        h += "<div class=\"bgroup\">\n";
-        // 徽章卡初始隐藏，数字定住后逐个出现（stagger 170ms）
-        h += "<div class=\"bcard anim-wait t-" + bt + "\">\n";
+        int ds = displayRank(b->id);
+        h += "<template class=\"bcard-tpl\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
+        h += "<div class=\"bgroup\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
+        // 徽章卡初始不渲染，出现时由 JS 克隆插入并播放上浮淡入动画
+        h += "<div class=\"bcard t-" + bt + "\">\n";
         h += "<div class=\"bhead\"><div class=\"btitle\"><span class=\"bemoji\">" + std::string(emojiOf(b->id)) + "</span><span class=\"bname\">" + b->label + "</span><span class=\"pill bpill\">" + upper(bt) + "</span></div><span class=\"bep\">+" + withCommas(b->score) + " EP</span></div>\n";
         h += "<p class=\"bdesc\">" + std::string(descOf(b->id)) + "</p>\n";
         // 官网 BadgeEvidence：DivisibleBy 类显示等式（{n} = {d} × {q}），PRONIC 显示 a×(a+1)
@@ -16842,7 +16870,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
             h += "</div>\n";
         }
         h += "</div>\n";
-        // 同族被覆盖徽章（earned 但非计分，与 b 同族）
+        // 同族被覆盖徽章（earned 但非计分，与 b 同族）——跟随主徽章一起出现
         for (size_t j = 0; j < earned.size(); j++) {
             if (isScoring[j]) continue;
             const Badge* sub = earned[j];
@@ -16850,6 +16878,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
             h += "<div class=\"bsub\"><span>└</span><span class=\"bemoji\">" + std::string(emojiOf(sub->id)) + "</span><span class=\"sub-name\">" + sub->label + "</span><span class=\"earned\">(earned)</span></div>\n";
         }
         h += "</div>\n";
+        h += "</template>\n";
     }
     h += "</div>\n";
     h += "</div>\n";
@@ -16885,37 +16914,93 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     shareText += "\n" + withCommas(total) + " EP\nhttps://rngdle.com";
     h += "<pre id=\"share-text\" hidden>" + shareText + "</pre>\n";
 
-    // ===== 抽奖动画（官网实测时序对齐）：数字整串快速滚动 ~1.8s 后同时定住 →
-    // 等级/百分位与倒计时淡入 → EP 从 ??? 占位转为 0 平滑递增（~4s easeOut）→
-    // 徽章逐个出现（间隔 ~0.6s）=====
+    // ===== 抽奖动画（复刻官网 ROLL_REVEAL_TIMING 精确时序，来自官网 896deb/c00485 chunk）=====
+    // 数字：0~2s 全槽滚动（100ms/帧灰色随机数）→ 2s 起逐位揭示（二次加速，最后一位 +2s 定格）
+    // → 徽章按出现序（score 升序）逐个上浮淡入，并实时重排为 score 降序显示；
+    // EP 随每个徽章出现 tween 到"已出现徽章分之和"；随后 summary → rarity → stats 依次出现
     h += "<script>\n";
     h += "(function(){\n";
     h += "var nums=["; for (size_t i = 0; i < ns.size(); i++) { h += std::string("'") + ns[i] + "',"; } h += "];\n";
     h += "var total=" + std::to_string(total) + ";\n";
     h += "var digs=[].slice.call(document.querySelectorAll('.num>span'));\n";
+    h += "var slots=digs.length,leadBlank=slots-nums.length;\n";
+    h += "var list=document.getElementById('badge-list');\n";
+    h += "var tpls=[].slice.call(document.querySelectorAll('template.bcard-tpl'));\n";
     h += "var meta=document.querySelector('.meta');\n";
+    h += "var sub=document.querySelector('.bd-sub');\n";
+    h += "var actions=document.querySelector('.actions');\n";
     h += "var ep=document.querySelector('.ep-pill');\n";
-    h += "var cards=[].slice.call(document.querySelectorAll('.bcard'));\n";
-    h += "var cd=document.querySelector('.nextroll');\n";
-    h += "var ROLL_FRAMES=22,f=0;\n";                       // 22 帧 × 80ms ≈ 1.76s
-    h += "var iv=setInterval(function(){\n";
-    h += "  f++;\n";
-    h += "  for(var i=0;i<digs.length;i++) digs[i].textContent=String(Math.floor(Math.random()*10));\n";
-    h += "  if(f>=ROLL_FRAMES){\n";
-    h += "    clearInterval(iv);\n";
-    h += "    for(var i=0;i<digs.length;i++) digs[i].textContent=nums[i];\n";   // 整串同时定住
-    h += "    if(meta) meta.classList.add('anim-in');\n";
-    h += "    if(cd) cd.classList.add('anim-in');\n";
-    h += "    var t0=Date.now(),ms=4000;\n";                  // EP 递增 ~4s，先快后慢
-    h += "    var ti=setInterval(function(){\n";
-    h += "      var p=Math.min(1,(Date.now()-t0)/ms);\n";
-    h += "      var v=Math.round(total*(1-Math.pow(1-p,3)));\n";
-    h += "      if(ep) ep.textContent=v.toLocaleString('en-US')+' EP';\n";
-    h += "      if(p>=1){clearInterval(ti);if(ep) ep.textContent=total.toLocaleString('en-US')+' EP';}\n";
-    h += "    },40);\n";
-    h += "    cards.forEach(function(c,i){setTimeout(function(){c.classList.add('anim-in')},500+i*600);});\n";
+    // 官网 ROLL_REVEAL_TIMING 原值（896deb chunk）：逐位揭示 2s 起、二次加速、末位 +2s；徽章 0.5s 起、1.5 次方加速
+    h += "var RT={digitRevealStart:2000,digitRevealBase:1000,digitRevealMax:2000,lastDigitExtraDelay:2000,numberCollapseDelay:0,badgeStartAfterNumber:1000,badgeRevealBase:500,badgeRevealMax:1500,epAnimateDuration:500,badgeSummaryDelay:1500,rarityRevealAfterSummary:1000,statsDelayAfterBadges:250,totalEpDelayAfterStats:1000,revealEndBuffer:500};\n";
+    h += "function digitDelay(i,tot){if(tot<=1)return RT.digitRevealBase;var l=RT.digitRevealBase+(RT.digitRevealMax-RT.digitRevealBase)*Math.pow(i/(tot-1),2);return i===tot-1?l+RT.lastDigitExtraDelay:l;}\n";
+    h += "function badgeDelay(i,tot){return tot<=1?RT.badgeRevealBase:RT.badgeRevealBase+(RT.badgeRevealMax-RT.badgeRevealBase)*Math.pow(i/(tot-1),1.5);}\n";
+    // 1) 数字滚动：未揭示位 100ms/帧随机数字（灰色）
+    h += "var revealed=new Array(slots).fill(false);\n";
+    h += "var spinIv=setInterval(function(){for(var i=0;i<slots;i++){if(revealed[i])continue;digs[i].textContent=String(Math.floor(Math.random()*10));digs[i].classList.add('spin');}},100);\n";
+    // 2) 逐位揭示（官网 digits:reveal-1..r 调度；revealed 位显示终值 + 400ms settle 定格特效）
+    h += "var t=RT.digitRevealStart;\n";
+    h += "for(var i=1;i<=slots;i++){\n";
+    h += "  (function(k){\n";
+    h += "    setTimeout(function(){\n";
+    h += "      revealed[k]=true;\n";
+    h += "      digs[k].classList.remove('spin');\n";
+    h += "      var v=(k<leadBlank)?'':(nums[k-leadBlank]||'');\n";
+    h += "      digs[k].textContent=v;\n";
+    h += "      if(k<leadBlank)digs[k].classList.add('blank');\n";
+    h += "      digs[k].classList.add('settle');\n";
+    h += "      setTimeout(function(){digs[k].classList.remove('settle');},400);\n";
+    h += "    },t);\n";
+    h += "  })(i-1);\n";
+    h += "  if(i<slots)t+=digitDelay(i-1,slots);\n";
+    h += "}\n";
+    // 3) EP：动画期间显示 ??? EP；徽章逐个出现时 tween 到累计分（官网 badge:r 的 epTo）
+    h += "var epValue=0,epTimer=null;\n";
+    h += "function epTo(v,dur){\n";
+    h += "  var st=epValue,t0=Date.now();\n";
+    h += "  if(epTimer)clearInterval(epTimer);\n";
+    h += "  epTimer=setInterval(function(){\n";
+    h += "    var p=Math.min(1,(Date.now()-t0)/dur);\n";
+    h += "    var e=1-(1-p)*(1-p);\n";
+    h += "    var vv=Math.round(st+(v-st)*e);\n";
+    h += "    ep.textContent=vv.toLocaleString('en-US')+' EP';\n";
+    h += "    if(p>=1){clearInterval(epTimer);epValue=v;ep.textContent=v.toLocaleString('en-US')+' EP';}\n";
+    h += "  },30);\n";
+    h += "}\n";
+    // 4) 徽章逐个出现（出现序=template DOM 序=score 升序+displayRank 升序），插入到 score 降序位置（实时重排）
+    h += "function insertBadge(tpl){\n";
+    h += "  var g=tpl.content.firstElementChild.cloneNode(true);\n";
+    h += "  var s=parseInt(tpl.dataset.s),k=parseInt(tpl.dataset.k),i=parseInt(tpl.dataset.i);\n";
+    h += "  var nodes=[].slice.call(list.children),pos=nodes.length;\n";
+    h += "  for(var j=0;j<nodes.length;j++){\n";
+    h += "    var ns=parseInt(nodes[j].getAttribute('data-s')),nk=parseInt(nodes[j].getAttribute('data-k')),ni=parseInt(nodes[j].getAttribute('data-i'));\n";
+    h += "    if(s>ns||(s===ns&&(k<nk||(k===nk&&i<ni)))){pos=j;break;}\n";
     h += "  }\n";
-    h += "},80);\n";
+    h += "  if(pos===nodes.length)list.appendChild(g);else list.insertBefore(g,nodes[pos]);\n";
+    h += "  requestAnimationFrame(function(){requestAnimationFrame(function(){g.classList.add('in');});});\n";
+    h += "}\n";
+    h += "t+=RT.badgeStartAfterNumber;\n";
+    h += "var acc=0;\n";
+    h += "for(var r=0;r<tpls.length;r++){\n";
+    h += "  (function(tpl,r){\n";
+    h += "    setTimeout(function(){\n";
+    h += "      insertBadge(tpl);\n";
+    h += "      acc+=parseInt(tpl.dataset.s);\n";
+    h += "      epTo(acc,RT.epAnimateDuration);\n";
+    h += "    },t);\n";
+    h += "  })(tpls[r],r);\n";
+    h += "  if(r<tpls.length-1)t+=badgeDelay(r,tpls.length);\n";
+    h += "}\n";
+    // 5) summary：badges earned 计数
+    h += "t+=RT.badgeSummaryDelay;\n";
+    h += "setTimeout(function(){sub.classList.add('anim-in');},t);\n";
+    // 6) rarity：COMMON / BOTTOM 14%
+    h += "t+=RT.rarityRevealAfterSummary;\n";
+    h += "setTimeout(function(){meta.classList.add('anim-in');},t);\n";
+    // 7) stats：SHARE / NEXT ROLL / SIGN UP
+    h += "t+=RT.statsDelayAfterBadges;\n";
+    h += "setTimeout(function(){actions.classList.add('anim-in');},t);\n";
+    // 8) 徽章全部插入后启动高亮数字呼吸灯（逐个熄灭再逐个亮起；函数定义见后文 script）
+    h += "setTimeout(function(){if(typeof initBreathing==='function')initBreathing();},t+100);\n";
     h += "})();\n";
     h += "</script>\n";
 
@@ -16930,8 +17015,9 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 跟随系统主题实时切换（未手动设置时）
     h += "(function(){var m=window.matchMedia('(prefers-color-scheme: dark)');function a(){var t=localStorage.getItem('rngdle_theme');if(t!=='dark'&&t!=='light')document.documentElement.classList.toggle('dark',m.matches)}if(m.addEventListener)m.addEventListener('change',a);else if(m.addListener)m.addListener(a);})();\n";
     h += "\n";
-    h += "// 徽章高亮数字：复刻官网 gsap 逐个熄灭/逐个亮起（stagger 80ms，ease power2.out，保持 4s 循环）\n";
-    h += "(function(){var hits=[].slice.call(document.querySelectorAll('.bdigits .d.hit'));if(!hits.length)return;var colors=hits.map(function(e){var cs=window.getComputedStyle(e);return{bg:cs.getPropertyValue('--dhit-bg').trim(),bd:cs.getPropertyValue('--dhit-bd').trim()};});function missBg(){return document.documentElement.classList.contains('dark')?'var(--surface-raised)':'var(--surface-dim)';}function paint(e,bg,col,bd){e.style.transition='background-color .4s cubic-bezier(0.33,1,0.68,1),color .4s cubic-bezier(0.33,1,0.68,1),border-color .4s cubic-bezier(0.33,1,0.68,1)';e.style.backgroundColor=bg;e.style.color=col;e.style.borderColor=bd;}function lightUp(){hits.forEach(function(e,i){setTimeout(function(){paint(e,colors[i].bg,'#000',colors[i].bd)},i*80);});}function dimOut(){hits.forEach(function(e,i){setTimeout(function(){paint(e,missBg(),'var(--prose-3)','transparent')},i*80);});}hits.forEach(function(e){e.style.backgroundColor=missBg();e.style.color='var(--prose-3)';e.style.borderColor='transparent';});lightUp();setInterval(function(){dimOut();setTimeout(lightUp,920);},5600);})();\n";
+    // 徽章高亮数字呼吸灯（复刻官网 gsap 逐个熄灭/逐个亮起 stagger 80ms）：徽章卡由 template 克隆后插入，须在动画完成后由动画脚本调用 initBreathing()
+    h += "function initBreathing(){var hits=[].slice.call(document.querySelectorAll('.bdigits .d.hit'));if(!hits.length)return;var colors=hits.map(function(e){var cs=window.getComputedStyle(e);return{bg:cs.getPropertyValue('--dhit-bg').trim(),bd:cs.getPropertyValue('--dhit-bd').trim()};});function missBg(){return document.documentElement.classList.contains('dark')?'var(--surface-raised)':'var(--surface-dim)';}function paint(e,bg,col,bd){e.style.transition='background-color .4s cubic-bezier(0.33,1,0.68,1),color .4s cubic-bezier(0.33,1,0.68,1),border-color .4s cubic-bezier(0.33,1,0.68,1)';e.style.backgroundColor=bg;e.style.color=col;e.style.borderColor=bd;}function lightUp(){hits.forEach(function(e,i){setTimeout(function(){paint(e,colors[i].bg,'#000',colors[i].bd)},i*80);});}function dimOut(){hits.forEach(function(e,i){setTimeout(function(){paint(e,missBg(),'var(--prose-3)','transparent')},i*80);});}hits.forEach(function(e){e.style.backgroundColor=missBg();e.style.color='var(--prose-3)';e.style.borderColor='transparent';});lightUp();setInterval(function(){dimOut();setTimeout(lightUp,920);},5600);}\n";
+
     h += "</script>\n</body>\n</html>\n";
 
     FILE* f = fopen("rngdle_result.html", "wb");

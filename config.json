@@ -1,6 +1,6 @@
 {
   "mode": "random",
-  "min": 1000,
+  "min": 0,
   "max": 999999,
   "list": [],
   "fixed": null
