@@ -29,19 +29,26 @@
   }
 
   // 全屏 iframe 覆盖官网，展示本地结果页（srcdoc 隔离，动画不受官网脚本干扰）；
-  // 右上角提供关闭按钮：关闭后回到官网，可再次点击 GENERATE 无限抽取
+  // 右上角：✕ 关闭回官网可再抽；✕ 下方「跳过动画」直接跳到最终结果。
+  //
+  // 两个必须防御的点：
+  //   1) 官网是 Next.js App Router，<html>/<body> 也在 React 的渲染树里，我们 append 到
+  //      documentElement 的节点属于「多出来的子节点」，官网任何一次重渲染都可能把它清掉
+  //      ——所以下面有一个保活看护：节点被移除就补回（move 节点不会让 iframe 重新加载）。
+  //   2) iframe 的 load 可能早于结果页脚本就绪（about:blank 的 load），不能一次探测不到就删按钮。
   function showLocalResult(html) {
     const old = document.getElementById("rngdle-local-frame");
     if (old) old.remove();
     const oldClose = document.getElementById("rngdle-local-close");
     if (oldClose) oldClose.remove();
+    const oldSkip = document.getElementById("rngdle-local-skip");
+    if (oldSkip) oldSkip.remove();
+
     const f = document.createElement("iframe");
     f.id = "rngdle-local-frame";
     f.style.cssText =
       "position:fixed;inset:0;width:100vw;height:100vh;border:0;z-index:2147483647;" +
       "background:#fff;";
-    document.documentElement.appendChild(f);
-    f.srcdoc = html;
     const c = document.createElement("button");
     c.id = "rngdle-local-close";
     c.textContent = "✕";
@@ -50,11 +57,84 @@
       "position:fixed;top:12px;right:12px;z-index:2147483647;width:34px;height:34px;" +
       "border-radius:50%;border:none;background:rgba(17,17,17,.85);color:#fff;" +
       "font:bold 16px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4);";
+    const s = document.createElement("button");
+    s.id = "rngdle-local-skip";
+    s.textContent = "跳过动画";
+    s.title = "立即显示最终结果";
+    s.style.cssText =
+      "position:fixed;top:54px;right:12px;z-index:2147483647;padding:7px 12px;" +
+      "border:none;border-radius:999px;background:rgba(17,17,17,.85);color:#fff;" +
+      "font:bold 12px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4);";
+
+    // 注意：content script 跑在隔离世界，读不到结果页里的 JS 全局变量 window.rngdleSkipAnim，
+    // 所以一律用 DOM 通信——结果页会设 data-rngdle-skip=1 / data-rngdle-anim=running|done，
+    // 并监听 'rngdle-skip' 事件来执行跳过。
+    const docOf = () => {
+      try {
+        return f.contentDocument;
+      } catch (err) {
+        return null;
+      }
+    };
+    const hasSkip = () => {
+      const d = docOf();
+      return !!(d && d.documentElement && d.documentElement.getAttribute("data-rngdle-skip") === "1");
+    };
+    const animDone = () => {
+      const d = docOf();
+      return !!(d && d.documentElement && d.documentElement.getAttribute("data-rngdle-anim") === "done");
+    };
+    const requestSkip = () => {
+      const d = docOf();
+      if (!d) return false;
+      try {
+        // 用结果页自身所属世界的构造函数造事件，再派发进它的 document（事件跨世界共享）
+        const W = f.contentWindow;
+        const Ctor = (W && (W.CustomEvent || W.Event)) || window.Event;
+        d.dispatchEvent(new Ctor("rngdle-skip"));
+        return true;
+      } catch (err) {
+        return false;
+      }
+    };
+
+    let closed = false;   // 用户关掉结果：停止一切看护
+    let skipped = false;  // 已点过跳过：不再补回按钮
+    let miss = 0;         // 连续探测不到跳过标记的次数（判定静态结果页）
+
     c.onclick = () => {
+      closed = true;
       f.remove();
       c.remove();
+      s.remove();
     };
+    s.onclick = () => {
+      skipped = true;
+      requestSkip();
+      s.remove();
+    };
+
+    document.documentElement.appendChild(f);
     document.documentElement.appendChild(c);
+    document.documentElement.appendChild(s);
+    f.srcdoc = html;
+
+    // 保活看护：官网重渲染清掉节点就补回；跳过按钮要等确认结果页没有跳过能力才隐藏
+    const keep = setInterval(() => {
+      if (closed) {
+        clearInterval(keep);
+        return;
+      }
+      if (!f.isConnected) document.documentElement.appendChild(f);
+      if (!c.isConnected) document.documentElement.appendChild(c);
+      if (skipped) return;
+      if (hasSkip() && !animDone()) {
+        miss = 0;
+        if (!s.isConnected) document.documentElement.appendChild(s);
+      } else if (++miss >= 6 && s.isConnected) {
+        s.remove(); // ~3 秒仍没有跳过能力（或动画已结束）→ 隐藏按钮
+      }
+    }, 500);
   }
 
   function showNotice(msg) {
@@ -68,6 +148,34 @@
     setTimeout(() => d.remove(), 7000);
   }
 
+  // 取本地结果页：
+  //   1) 优先请扩展后台（background.js service worker）代取——不受网页「本地网络访问(LNA)」
+  //      权限和页面 CORS 限制。切勿在网页上下文声明 targetAddressSpace:'local'：Chrome 会校验
+  //      声明与真实地址空间，127.0.0.1 属于 loopback，与 local 不符会导致请求必然失败。
+  //   2) 后台不可用时回退为内容脚本直接 fetch（此时需已允许 rngdle.com 访问本地网络）。
+  function fetchResult() {
+    return new Promise((resolve) => {
+      const bg = (typeof chrome !== "undefined") && chrome.runtime && chrome.runtime.sendMessage;
+      if (!bg) { resolve(null); return; }
+      try {
+        chrome.runtime.sendMessage({ type: "rngdle-generate" }, (res) => {
+          if (chrome.runtime.lastError) resolve(null);
+          else resolve(res || null);
+        });
+      } catch (err) {
+        resolve(null);
+      }
+    }).then((res) => {
+      if (res && res.ok && typeof res.html === "string") return res.html;
+      if (res && !res.ok && res.error) throw new Error(res.error);
+      // 回退：内容脚本直接取
+      return fetch(SERVER + "/generate", { cache: "no-store" }).then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      });
+    });
+  }
+
   // capture 阶段拦截：先于官网自己的 click 处理执行，阻止官网 roll 与结果展示
   document.addEventListener(
     "click",
@@ -78,11 +186,10 @@
       e.stopPropagation();
       e.stopImmediatePropagation();
       try {
-        const r = await fetch(SERVER + "/generate", { cache: "no-store" });
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        showLocalResult(await r.text());
+        showLocalResult(await fetchResult());
       } catch (err) {
-        showNotice("无法连接本地服务器（" + err.message + "）。请先运行 rngdle_server.py（端口 8765）。");
+        showNotice("无法连接本地服务器（" + err.message + "）。请先运行 rngdle_server.py（端口 8765）；" +
+                   "若控制台提示本地网络访问被拦截，请在地址栏允许 rngdle.com 访问本地网络后重试。");
       } finally {
         busy = false;
       }

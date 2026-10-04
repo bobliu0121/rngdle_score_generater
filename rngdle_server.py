@@ -566,6 +566,9 @@ HOME = r"""<!doctype html>
   #close { display:none; position:fixed; top:12px; right:12px; z-index:100; width:34px; height:34px;
            border-radius:50%; border:none; background:rgba(17,17,17,.85); color:#fff;
            font:bold 16px/1 Arial,sans-serif; box-shadow:0 2px 10px rgba(0,0,0,.4); }
+  #skip { display:none; position:fixed; top:54px; right:12px; z-index:100; padding:7px 12px;
+          border:none; border-radius:999px; background:rgba(17,17,17,.85); color:#fff;
+          font:bold 12px/1 Arial,sans-serif; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.4); }
 </style>
 </head>
 <body>
@@ -642,6 +645,7 @@ HOME = r"""<!doctype html>
     </div>
   </main>
   <button id="close" type="button" title="关闭结果，返回配置">&times;</button>
+  <button id="skip" type="button" title="立即显示最终结果">跳过动画</button>
 <script>
 (function () {
   "use strict";
@@ -835,6 +839,17 @@ HOME = r"""<!doctype html>
         document.body.appendChild(f);
         f.srcdoc = html;
         $("close").style.display = "block";
+        $("skip").style.display = "block";
+        // 静态结果页（config 里 animation=false）没有 rngdleSkipAnim，此时才隐藏跳过按钮；
+        // 连续多次探测不到才判定（iframe 的首次 load 可能早于结果页脚本就绪，一次误判会把按钮删掉）
+        var miss = 0;
+        var guard = setInterval(function () {
+          if (!f.isConnected) { clearInterval(guard); return; }
+          var has = false;
+          try { has = typeof f.contentWindow.rngdleSkipAnim === "function"; } catch (e) { has = false; }
+          if (has) { miss = 0; return; }
+          if (++miss >= 6) { clearInterval(guard); $("skip").style.display = "none"; }
+        }, 500);
       })
       .catch(function (e) { alert("生成失败：" + e.message + "（请确认 rngdle_score.exe 与本服务器在同一目录）"); })
       .then(function () {
@@ -843,10 +858,21 @@ HOME = r"""<!doctype html>
       });
   });
 
+  $("skip").addEventListener("click", function () {
+    var f = $("res");
+    try {
+      if (f && f.contentWindow && typeof f.contentWindow.rngdleSkipAnim === "function") {
+        f.contentWindow.rngdleSkipAnim();
+      }
+    } catch (e) { /* 结果页未就绪：忽略 */ }
+    this.style.display = "none";
+  });
+
   $("close").addEventListener("click", function () {
     var f = $("res");
     if (f) f.remove();
     this.style.display = "none";
+    $("skip").style.display = "none";
   });
 
   $("mode").addEventListener("change", applyMode);

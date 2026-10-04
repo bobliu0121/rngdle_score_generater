@@ -16133,13 +16133,13 @@ static int displayRank(const char* id) {
 // 官网官方定义序 k 表（c00485 chunk verbatim）：
 //   let k=new Map((N.find(e=>"periodic-table"===e.id)?.badgeIds??[]).map((e,a)=>[e,a]));
 //   periodic-table 组 badgeIds = HYDROGEN,HELIUM,LITHIUM,BERYLLIUM,BORON,CARBON,NITROGEN,OXYGEN,FLUORINE（原子序升序）
-// 出现序（G()）同分时按 k 升序；不在表中的徽章 k=Infinity（排在元素徽章之后，保持稳定序）
-static int officialRank(const char* id) {
-    static const char* E[] = { "HYDROGEN","HELIUM","LITHIUM","BERYLLIUM","BORON","CARBON","NITROGEN","OXYGEN","FLUORINE" };
-    for (int i = 0; i < 9; i++)
-        if (!std::strcmp(id, E[i])) return i;
-    return INT_MAX;  // 官网 k.get(e.id) ?? Infinity
-}
+//   G() 同分时按 k 升序；不在表中的徽章 k=Infinity。
+// 该口径曾用于徽章出现序，但会让「同分时后一枚插到前一枚下面」，破坏从下往上的观感：
+// 例 555515 的 SEMI_CLEAN 与 EQUILIBRIUM 同为 1000 EP，k 口径下 SEMI_CLEAN 先出现（在下方），
+// 紧接着 EQUILIBRIUM 被插到它下面 → 视觉上突然往回跳。
+// 现在出现序改为「显示序的严格倒序」（见 writeHtml），每枚新徽章必定落在上一枚上方；
+// 元素徽章两种口径顺序本来就一致（显示序 FLUORINE→HYDROGEN，倒序即 HYDROGEN→FLUORINE = 原子序升序），
+// 所以官网观感不受影响。
 // 计分徽章统一排序：按 EP 降序；同 EP 按官网显示序（元素原子序降序 / LIFTOFF 先于 EVEN、ODD），再按表序
 // 控制台输出与结果页共用，保证与官网显示一致
 static std::vector<const Badge*> orderedBadges(const std::vector<const Badge*>& scoring) {
@@ -16864,29 +16864,25 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "<div class=\"bd\">\n<h2" + std::string(anim ? " class=\"anim-wait\"" : "") + ">Badge Breakdown</h2>\n";
     h += "<div class=\"bd-sub" + std::string(anim ? " anim-wait" : "") + "\"><b>" + std::to_string((int)earned.size()) + " badges earned</b></div>\n";
     h += "<div id=\"badge-list\">\n";
-    // 动画版：徽章卡以 <template> 输出，JS 按出现序（score 升序、同分按官网官方定义序 k 升序——
-    // 元素 HYDROGEN→FLUORINE 原子序升序，非元素 k=Infinity 保持表序）逐个克隆插入
-    // #badge-list，并按 score 降序定位（实时重排），复刻官网 G() 排序 + 渲染列表
-    // eW.slice().reverse() 降序排列的动画效果；静态版直接用显示序（score 降序）一次性渲染。
+    // 动画版：徽章卡以 <template> 输出，出现序 = 显示序的严格倒序（最后一名先出现，逐个往上），
+    // 这样每枚新徽章必定落在上一枚上方，不会出现同分时往回跳（见 officialRank 处的说明）。
+    // data-i 用「显示序下标」（而不是出现序下标）：JS 按 (score 降序, data-k 升序, data-i 升序)
+    // 插入定位，正是 orderedBadges 的显示序键，所以动画收敛结果与静态页/控制台完全一致。
     std::vector<const Badge*> appear = ordered;
-    std::sort(appear.begin(), appear.end(),
-              [](const Badge* a, const Badge* b) {
-                  if (a->score != b->score) return a->score < b->score;
-                  int oa = officialRank(a->id), ob = officialRank(b->id);
-                  if (oa != ob) return oa < ob;
-                  return (a - &BADGES[0]) < (b - &BADGES[0]);
-              });
+    std::reverse(appear.begin(), appear.end());
     const std::vector<const Badge*>& renderOrder = anim ? appear : ordered;
     for (size_t i = 0; i < renderOrder.size(); i++) {
         const Badge* b = renderOrder[i];
         std::string bt = badgeTier(b->score);
         int ds = displayRank(b->id);
+        // appear 是 ordered 的倒序，故显示序下标 = size()-1-i；静态版 renderOrder 就是 ordered，直接取 i
+        size_t di = anim ? (ordered.size() - 1 - i) : i;
         if (anim) {
-            h += "<template class=\"bcard-tpl\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
-            h += "<div class=\"bgroup\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
+            h += "<template class=\"bcard-tpl\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(di) + "\">\n";
+            h += "<div class=\"bgroup\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(di) + "\">\n";
         } else {
             // 静态版：徽章卡直接渲染（in 态），无需 JS 插入
-            h += "<div class=\"bgroup in\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
+            h += "<div class=\"bgroup in\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(di) + "\">\n";
         }
         // 徽章卡初始不渲染（动画版），出现时由 JS 克隆插入并播放上浮淡入动画
         h += "<div class=\"bcard t-" + bt + "\">\n";
@@ -16994,6 +16990,10 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "var RT={digitRevealStart:2000,digitRevealBase:1000,digitRevealMax:2000,lastDigitExtraDelay:2000,numberCollapseDelay:0,badgeStartAfterNumber:1000,badgeRevealBase:500,badgeRevealMax:1500,epAnimateDuration:500,badgeSummaryDelay:1500,rarityRevealAfterSummary:1000,statsDelayAfterBadges:250,totalEpDelayAfterStats:1000,revealEndBuffer:500};\n";
     h += "function digitDelay(i,tot){if(tot<=1)return RT.digitRevealBase;var l=RT.digitRevealBase+(RT.digitRevealMax-RT.digitRevealBase)*Math.pow(i/(tot-1),2);return i===tot-1?l+RT.lastDigitExtraDelay:l;}\n";
     h += "function badgeDelay(i,tot){return tot<=1?RT.badgeRevealBase:RT.badgeRevealBase+(RT.badgeRevealMax-RT.badgeRevealBase)*Math.pow(i/(tot-1),1.5);}\n";
+    // 计时器登记：动画里的 setTimeout 统一走 after()，跳过动画时能一次性清空；
+    // 跳过按钮（覆盖层右上角 ✕ 下方）调用本脚本暴露的 window.rngdleSkipAnim()
+    h += "var timers=[],done=false;\n";
+    h += "function after(fn,ms){var id=setTimeout(fn,ms);timers.push(id);return id;}\n";
     // 1) 数字滚动：未揭示位 100ms/帧随机数字（灰色）
     h += "var revealed=new Array(slots).fill(false);\n";
     h += "var spinIv=setInterval(function(){for(var i=0;i<slots;i++){if(revealed[i])continue;digs[i].textContent=String(Math.floor(Math.random()*10));digs[i].classList.add('spin');}},100);\n";
@@ -17001,14 +17001,14 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "var t=RT.digitRevealStart;\n";
     h += "for(var i=1;i<=slots;i++){\n";
     h += "  (function(k){\n";
-    h += "    setTimeout(function(){\n";
+    h += "    after(function(){\n";
     h += "      revealed[k]=true;\n";
     h += "      digs[k].classList.remove('spin');\n";
     h += "      var v=(k<leadBlank)?'':(nums[k-leadBlank]||'');\n";
     h += "      digs[k].textContent=v;\n";
     h += "      if(k<leadBlank)digs[k].classList.add('blank');\n";
     h += "      digs[k].classList.add('settle');\n";
-    h += "      setTimeout(function(){digs[k].classList.remove('settle');},400);\n";
+    h += "      after(function(){digs[k].classList.remove('settle');},400);\n";
     h += "    },t);\n";
     h += "  })(i-1);\n";
     h += "  if(i<slots)t+=digitDelay(i-1,slots);\n";
@@ -17031,7 +17031,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  nc0.classList.remove('settle-snap');\n";
     h += "  finalePulse();\n";
     h += "}\n";
-    h += "setTimeout(settleBox,t+20);\n";
+    h += "after(settleBox,t+20);\n";
     // 3) EP：动画期间显示 ??? EP；徽章逐个出现时 tween 到累计分（官网 badge:r 的 epTo）
     h += "var epValue=0,epTimer=null;\n";
     h += "function epTo(v,dur){\n";
@@ -17045,7 +17045,19 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "    if(p>=1){clearInterval(epTimer);epValue=v;ep.textContent=v.toLocaleString('en-US')+' EP';}\n";
     h += "  },30);\n";
     h += "}\n";
-    // 4) 徽章逐个出现（出现序=template DOM 序=score 升序+官网官方定义序 k 升序），插入到 score 降序位置（实时重排）
+    // 4) 徽章逐个出现（出现序 = template DOM 序 = 显示序的倒序），按显示序键
+    //    (score 降序, data-k 升序, data-i 升序=显示序下标) 插入到正确位置：
+    //    每枚新徽章都排在已出现徽章之前（上方），列表严格自下而上生长
+    // 4a) 单枚徽章的高亮数字展示：把该徽章命中位先压暗，再按 90ms 逐个亮起（与最终呼吸灯同一套画法）
+    h += "function paintHit(e,bg,col,bd){e.style.transition='background-color .4s cubic-bezier(0.33,1,0.68,1),color .4s cubic-bezier(0.33,1,0.68,1),border-color .4s cubic-bezier(0.33,1,0.68,1)';e.style.backgroundColor=bg;e.style.color=col;e.style.borderColor=bd;}\n";
+    h += "function flashHits(root){\n";
+    h += "  var hits=[].slice.call(root.querySelectorAll('.bdigits .d.hit'));\n";
+    h += "  if(!hits.length)return;\n";
+    h += "  var dark=document.documentElement.classList.contains('dark');\n";
+    h += "  var colors=hits.map(function(e){var cs=window.getComputedStyle(e);return{bg:cs.getPropertyValue('--dhit-bg').trim(),bd:cs.getPropertyValue('--dhit-bd').trim()};});\n";
+    h += "  hits.forEach(function(e){e.style.transition='none';e.style.backgroundColor=dark?'var(--surface-raised)':'var(--surface-dim)';e.style.color='var(--prose-3)';e.style.borderColor='transparent';});\n";
+    h += "  hits.forEach(function(e,i){after(function(){paintHit(e,colors[i].bg,'#000',colors[i].bd);},40+i*90);});\n";
+    h += "}\n";
     h += "function insertBadge(tpl){\n";
     h += "  var g=tpl.content.firstElementChild.cloneNode(true);\n";
     h += "  var s=parseInt(tpl.dataset.s),k=parseInt(tpl.dataset.k),i=parseInt(tpl.dataset.i);\n";
@@ -17055,15 +17067,17 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "    if(s>ns||(s===ns&&(k<nk||(k===nk&&i<ni)))){pos=j;break;}\n";
     h += "  }\n";
     h += "  if(pos===nodes.length)list.appendChild(g);else list.insertBefore(g,nodes[pos]);\n";
+    // 出现时立刻压暗命中位（此时徽章还在上浮淡入），随后逐个亮起——原来只在全部徽章出完后才亮
+    h += "  flashHits(g);\n";
     h += "  requestAnimationFrame(function(){requestAnimationFrame(function(){g.classList.add('in');});});\n";
     h += "}\n";
     h += "t+=RT.badgeStartAfterNumber;\n";
     // 4b) Badge Breakdown 标题随第一个徽章一起出现（官网 eE>0 条件渲染：badge:1 时显示）
-    h += "setTimeout(function(){var h2=document.querySelector('.bd h2');if(h2)h2.classList.add('anim-in');},t+10);\n";
+    h += "after(function(){var h2=document.querySelector('.bd h2');if(h2)h2.classList.add('anim-in');},t+10);\n";
     h += "var acc=0;\n";
     h += "for(var r=0;r<tpls.length;r++){\n";
     h += "  (function(tpl,r){\n";
-    h += "    setTimeout(function(){\n";
+    h += "    after(function(){\n";
     h += "      insertBadge(tpl);\n";
     h += "      acc+=parseInt(tpl.dataset.s);\n";
     h += "      epTo(acc,RT.epAnimateDuration);\n";
@@ -17073,16 +17087,62 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "}\n";
     // 5) summary：badges earned 计数（徽章全部展示完成后才显示；Badge Breakdown 标题已随第一个徽章出现）
     h += "t+=RT.badgeSummaryDelay;\n";
-    h += "setTimeout(function(){sub.classList.add('anim-in');},t);\n";
+    h += "after(function(){sub.classList.add('anim-in');},t);\n";
     // 6) rarity：COMMON / BOTTOM 14%；同时结果框与 EP 框从 common 切到最终品质色（官网 showRarityStyle/ex），
     //    并触发第二次 finale-pulse（pulseKey=2）
     h += "t+=RT.rarityRevealAfterSummary;\n";
-    h += "setTimeout(function(){meta.classList.add('anim-in');finalePulse();var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');if(pc&&pc.getAttribute('data-tier'))pc.className=pc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+pc.getAttribute('data-tier');},t);\n";
+    h += "after(function(){meta.classList.add('anim-in');finalePulse();var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');if(pc&&pc.getAttribute('data-tier'))pc.className=pc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+pc.getAttribute('data-tier');},t);\n";
     // 7) stats：SHARE / NEXT ROLL / SIGN UP
     h += "t+=RT.statsDelayAfterBadges;\n";
-    h += "setTimeout(function(){actions.classList.add('anim-in');},t);\n";
+    h += "after(function(){actions.classList.add('anim-in');},t);\n";
     // 8) 徽章全部插入后启动高亮数字呼吸灯（逐个熄灭再逐个亮起；函数定义见后文 script）
-    h += "setTimeout(function(){if(typeof initBreathing==='function')initBreathing();},t+100);\n";
+    h += "after(function(){if(typeof initBreathing==='function')initBreathing();},t+100);\n";
+    // 9) 跳过动画：清空所有排队定时器与滚动/EP 定时器，把各元素直接置为终态。
+    //    终态与动画自然结束完全一致：数字全揭示并切回第一版框、徽章按显示序一次铺满、
+    //    EP 显示总分、等级行/summary/操作行显示、颜色切到最终品质、启动呼吸灯。
+    //    徽章模板序是「显示序倒序」，逐个插到最前面即得到显示序；插入时关掉过渡以免快速淡入闪烁。
+    h += "function finish(){\n";
+    h += "  if(done)return;done=true;\n";
+    h += "  for(var i=0;i<timers.length;i++)clearTimeout(timers[i]);timers=[];\n";
+    h += "  clearInterval(spinIv);if(epTimer)clearInterval(epTimer);\n";
+    h += "  for(var k=0;k<slots;k++){\n";
+    h += "    revealed[k]=true;\n";
+    h += "    digs[k].classList.remove('spin');digs[k].classList.remove('settle');\n";
+    h += "    var v=(k<leadBlank)?'':(nums[k-leadBlank]||'');\n";
+    h += "    digs[k].textContent=v;\n";
+    h += "    if(k<leadBlank)digs[k].classList.add('blank');else digs[k].classList.remove('blank');\n";
+    h += "  }\n";
+    h += "  if(nc0){nc0.classList.add('settle-snap');nc0.classList.remove('rolling');nc0.classList.remove('finale-pulse');}\n";
+    h += "  if(nums.length<6)numEl.classList.add('collapsed');\n";
+    h += "  if(nc0){void nc0.offsetWidth;nc0.classList.remove('settle-snap');}\n";
+    h += "  list.innerHTML='';\n";
+    h += "  for(var r=0;r<tpls.length;r++){\n";
+    h += "    var g=tpls[r].content.firstElementChild.cloneNode(true);\n";
+    h += "    g.style.transition='none';\n";
+    h += "    list.insertBefore(g,list.firstChild);\n";
+    h += "    g.classList.add('in');\n";
+    h += "  }\n";
+    h += "  var h2=document.querySelector('.bd h2');if(h2)h2.classList.add('anim-in');\n";
+    h += "  if(sub)sub.classList.add('anim-in');\n";
+    h += "  if(meta)meta.classList.add('anim-in');\n";
+    h += "  if(actions)actions.classList.add('anim-in');\n";
+    h += "  epValue=total;ep.textContent=total.toLocaleString('en-US')+' EP';\n";
+    h += "  var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');\n";
+    h += "  if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');\n";
+    h += "  if(pc&&pc.getAttribute('data-tier'))pc.className=pc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+pc.getAttribute('data-tier');\n";
+    h += "  if(typeof initBreathing==='function')initBreathing();\n";
+    h += "  if(typeof markDone==='function')markDone();\n";
+    h += "}\n";
+    h += "window.rngdleSkipAnim=finish;\n";
+    // 跨世界通信：浏览器扩展的 content script 跑在隔离世界，读不到本页的 JS 全局变量，
+    // 只能用 DOM 传递信号（DOM 属性与 DOM 事件在两个世界之间是共享的）。
+    // data-rngdle-skip=1 表示本页支持跳过；data-rngdle-anim 标记 running/done；
+    // 覆盖层通过派发 'rngdle-skip' 事件触发 finish()。
+    h += "document.documentElement.setAttribute('data-rngdle-skip','1');\n";
+    h += "document.documentElement.setAttribute('data-rngdle-anim','running');\n";
+    h += "function markDone(){document.documentElement.setAttribute('data-rngdle-anim','done');}\n";
+    h += "document.addEventListener('rngdle-skip',finish);\n";
+    h += "after(markDone,t+150);\n";
     h += "})();\n";
     h += "</script>\n";
     } // if(anim)：静态版（--no-anim）跳过整个抽奖动画脚本，直接展示终态
@@ -17099,7 +17159,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "(function(){var m=window.matchMedia('(prefers-color-scheme: dark)');function a(){var t=localStorage.getItem('rngdle_theme');if(t!=='dark'&&t!=='light')document.documentElement.classList.toggle('dark',m.matches)}if(m.addEventListener)m.addEventListener('change',a);else if(m.addListener)m.addListener(a);})();\n";
     h += "\n";
     // 徽章高亮数字呼吸灯（复刻官网 gsap 逐个熄灭/逐个亮起 stagger 80ms）：徽章卡由 template 克隆后插入，须在动画完成后由动画脚本调用 initBreathing()
-    h += "function initBreathing(){var hits=[].slice.call(document.querySelectorAll('.bdigits .d.hit'));if(!hits.length)return;var colors=hits.map(function(e){var cs=window.getComputedStyle(e);return{bg:cs.getPropertyValue('--dhit-bg').trim(),bd:cs.getPropertyValue('--dhit-bd').trim()};});function missBg(){return document.documentElement.classList.contains('dark')?'var(--surface-raised)':'var(--surface-dim)';}function paint(e,bg,col,bd){e.style.transition='background-color .4s cubic-bezier(0.33,1,0.68,1),color .4s cubic-bezier(0.33,1,0.68,1),border-color .4s cubic-bezier(0.33,1,0.68,1)';e.style.backgroundColor=bg;e.style.color=col;e.style.borderColor=bd;}function lightUp(){hits.forEach(function(e,i){setTimeout(function(){paint(e,colors[i].bg,'#000',colors[i].bd)},i*80);});}function dimOut(){hits.forEach(function(e,i){setTimeout(function(){paint(e,missBg(),'var(--prose-3)','transparent')},i*80);});}hits.forEach(function(e){e.style.backgroundColor=missBg();e.style.color='var(--prose-3)';e.style.borderColor='transparent';});lightUp();setInterval(function(){dimOut();setTimeout(lightUp,920);},5600);}\n";
+    h += "function initBreathing(){if(window.__rngdleBreathOn)return;window.__rngdleBreathOn=1;var hits=[].slice.call(document.querySelectorAll('.bdigits .d.hit'));if(!hits.length)return;var colors=hits.map(function(e){var cs=window.getComputedStyle(e);return{bg:cs.getPropertyValue('--dhit-bg').trim(),bd:cs.getPropertyValue('--dhit-bd').trim()};});function missBg(){return document.documentElement.classList.contains('dark')?'var(--surface-raised)':'var(--surface-dim)';}function paint(e,bg,col,bd){e.style.transition='background-color .4s cubic-bezier(0.33,1,0.68,1),color .4s cubic-bezier(0.33,1,0.68,1),border-color .4s cubic-bezier(0.33,1,0.68,1)';e.style.backgroundColor=bg;e.style.color=col;e.style.borderColor=bd;}function lightUp(){hits.forEach(function(e,i){setTimeout(function(){paint(e,colors[i].bg,'#000',colors[i].bd)},i*80);});}function dimOut(){hits.forEach(function(e,i){setTimeout(function(){paint(e,missBg(),'var(--prose-3)','transparent')},i*80);});}hits.forEach(function(e){e.style.backgroundColor=missBg();e.style.color='var(--prose-3)';e.style.borderColor='transparent';});lightUp();setInterval(function(){dimOut();setTimeout(lightUp,920);},5600);}\n";
 
     h += "</script>\n</body>\n</html>\n";
 
