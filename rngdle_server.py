@@ -281,6 +281,14 @@ class Handler(BaseHTTPRequestHandler):
             print("[err]", e)
             return None
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def log_message(self, fmt, *args):
         print("[%s] %s" % (self.address_string(), fmt % args))
 

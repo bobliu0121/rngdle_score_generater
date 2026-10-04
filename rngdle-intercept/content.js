@@ -17,10 +17,13 @@
     return /generate/.test(t) || /generate/.test(aria) || /generate/.test(cls) || /generate/.test(id);
   }
 
-  // 全屏 iframe 覆盖官网，展示本地结果页（srcdoc 隔离，动画不受官网脚本干扰）
+  // 全屏 iframe 覆盖官网，展示本地结果页（srcdoc 隔离，动画不受官网脚本干扰）；
+  // 右上角提供关闭按钮：关闭后回到官网，可再次点击 GENERATE 无限抽取
   function showLocalResult(html) {
     const old = document.getElementById("rngdle-local-frame");
     if (old) old.remove();
+    const oldClose = document.getElementById("rngdle-local-close");
+    if (oldClose) oldClose.remove();
     const f = document.createElement("iframe");
     f.id = "rngdle-local-frame";
     f.style.cssText =
@@ -28,6 +31,19 @@
       "background:#fff;";
     document.documentElement.appendChild(f);
     f.srcdoc = html;
+    const c = document.createElement("button");
+    c.id = "rngdle-local-close";
+    c.textContent = "✕";
+    c.title = "关闭结果，返回官网（可再次抽取）";
+    c.style.cssText =
+      "position:fixed;top:12px;right:12px;z-index:2147483647;width:34px;height:34px;" +
+      "border-radius:50%;border:none;background:rgba(17,17,17,.85);color:#fff;" +
+      "font:bold 16px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4);";
+    c.onclick = () => {
+      f.remove();
+      c.remove();
+    };
+    document.documentElement.appendChild(c);
   }
 
   function showNotice(msg) {
