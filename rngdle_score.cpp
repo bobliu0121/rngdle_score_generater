@@ -16782,16 +16782,16 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "<span class=\"sep\">•</span>\n";
     h += std::string("<span class=\"pct ") + pctCls + "\">" + pctText + "</span>\n</div>\n";
 
-    // ===== EP（初始 0，动画递增至终值）=====
+    // ===== EP（动画期间显示官网同款 ??? 占位，数字定住后递增至终值）=====
     h += "<div class=\"eprow\">\n";
-    h += "<div class=\"ep-pill t-" + tier + "\">0 EP</div>\n";
+    h += "<div class=\"ep-pill t-" + tier + "\">??? EP</div>\n";
     h += "<div class=\"life\"><b>0 EP</b><span>Your lifetime EP</span></div>\n";
     h += "</div>\n";
 
     // ===== 操作行 =====
     h += "<div class=\"actions\">\n<div class=\"action-row\">\n";
     h += "<button class=\"share-btn\" type=\"button\" onclick=\"copyShare()\"><svg id=\"share-ic\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"18\" cy=\"5\" r=\"3\"/><circle cx=\"6\" cy=\"12\" r=\"3\"/><circle cx=\"18\" cy=\"19\" r=\"3\"/><line x1=\"8.59\" x2=\"15.42\" y1=\"13.51\" y2=\"17.49\"/><line x1=\"15.41\" x2=\"8.59\" y1=\"6.51\" y2=\"10.49\"/></svg><span class=\"share-txt\" id=\"share-txt\">Share</span></button>\n";
-    h += "<div class=\"nextroll\"><span>Next roll in</span><b id=\"countdown\">--h --m --s</b></div>\n";
+    h += "<div class=\"nextroll anim-wait\"><span>Next roll in</span><b id=\"countdown\">--h --m --s</b></div>\n";
     h += "</div>\n";
     h += "<a class=\"save-note\" href=\"https://www.rngdle.com/\">Sign up to save future rolls — this one can't be saved</a>\n";
     h += "</div>\n";
@@ -16885,8 +16885,9 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     shareText += "\n" + withCommas(total) + " EP\nhttps://rngdle.com";
     h += "<pre id=\"share-text\" hidden>" + shareText + "</pre>\n";
 
-    // ===== 抽奖动画：数字逐位出现 → 等级/百分位淡入 → EP 递增 → 徽章逐个出现 =====
-    // 与官网一致：数字位一起快速滚动，从高位到低位逐个锁定终值（每 80ms 一帧）
+    // ===== 抽奖动画（官网实测时序对齐）：数字整串快速滚动 ~1.8s 后同时定住 →
+    // 等级/百分位与倒计时淡入 → EP 从 ??? 占位转为 0 平滑递增（~4s easeOut）→
+    // 徽章逐个出现（间隔 ~0.6s）=====
     h += "<script>\n";
     h += "(function(){\n";
     h += "var nums=["; for (size_t i = 0; i < ns.size(); i++) { h += std::string("'") + ns[i] + "',"; } h += "];\n";
@@ -16895,24 +16896,24 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "var meta=document.querySelector('.meta');\n";
     h += "var ep=document.querySelector('.ep-pill');\n";
     h += "var cards=[].slice.call(document.querySelectorAll('.bcard'));\n";
-    h += "var lockStep=9,frames=0,lastLock=(digs.length-1)*lockStep;\n";
+    h += "var cd=document.querySelector('.nextroll');\n";
+    h += "var ROLL_FRAMES=22,f=0;\n";                       // 22 帧 × 80ms ≈ 1.76s
     h += "var iv=setInterval(function(){\n";
-    h += "  frames++;\n";
-    h += "  for(var i=0;i<digs.length;i++){\n";
-    h += "    if(frames>=i*lockStep) digs[i].textContent=nums[i];\n";
-    h += "    else digs[i].textContent=String(Math.floor(Math.random()*10));\n";
-    h += "  }\n";
-    h += "  if(frames>=lastLock){\n";
+    h += "  f++;\n";
+    h += "  for(var i=0;i<digs.length;i++) digs[i].textContent=String(Math.floor(Math.random()*10));\n";
+    h += "  if(f>=ROLL_FRAMES){\n";
     h += "    clearInterval(iv);\n";
+    h += "    for(var i=0;i<digs.length;i++) digs[i].textContent=nums[i];\n";   // 整串同时定住
     h += "    if(meta) meta.classList.add('anim-in');\n";
-    h += "    var t0=Date.now(),ms=1600;\n";
+    h += "    if(cd) cd.classList.add('anim-in');\n";
+    h += "    var t0=Date.now(),ms=4000;\n";                  // EP 递增 ~4s，先快后慢
     h += "    var ti=setInterval(function(){\n";
     h += "      var p=Math.min(1,(Date.now()-t0)/ms);\n";
     h += "      var v=Math.round(total*(1-Math.pow(1-p,3)));\n";
     h += "      if(ep) ep.textContent=v.toLocaleString('en-US')+' EP';\n";
     h += "      if(p>=1){clearInterval(ti);if(ep) ep.textContent=total.toLocaleString('en-US')+' EP';}\n";
     h += "    },40);\n";
-    h += "    cards.forEach(function(c,i){setTimeout(function(){c.classList.add('anim-in')},350+i*170);});\n";
+    h += "    cards.forEach(function(c,i){setTimeout(function(){c.classList.add('anim-in')},500+i*600);});\n";
     h += "  }\n";
     h += "},80);\n";
     h += "})();\n";
