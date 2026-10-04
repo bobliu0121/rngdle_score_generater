@@ -16685,7 +16685,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 数字卡
     h += ".numcard{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;width:fit-content;max-width:100%;border-radius:12px;padding:20px 32px;border:3px solid var(--tb);background:var(--g);box-shadow:var(--glow),var(--ig);transition:all .5s;animation:num-breathe 3s ease-in-out infinite}\n";
     h += "@keyframes num-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}\n";
-        h += ".num{font-family:var(--font-roll);font-weight:700;font-size:36px;line-height:1.1;display:flex;gap:0;color:var(--tx);text-shadow:0 1px 2px rgba(255,255,255,.5);font-variant-numeric:tabular-nums}\n";
+        h += ".num{font-family:var(--font-roll);font-weight:700;font-size:36px;line-height:1.1;display:flex;gap:0;color:var(--tx);text-shadow:0 1px 2px rgba(255,255,255,.5);font-variant-numeric:tabular-nums;transition:font-size .5s ease}\n";
     h += ".dark .num{text-shadow:0 1px 2px rgba(255,255,255,.15)}\n";
     h += ".numcard::before{content:'';position:absolute;inset:-1px;pointer-events:none;border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.4) 0%,rgba(255,255,255,.1) 40%,transparent 60%)}\n";
     h += ".dark .numcard::before{opacity:.4}\n";
@@ -16765,7 +16765,13 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".num>span{min-width:.62em;display:inline-block;text-align:center;transition:color .4s,text-shadow .4s,transform .4s}\n";
     // 数字滚动/揭示状态（复刻官网 digit-spin / digit-settle）
     h += ".num span.spin{color:var(--prose-3)}\n";
-    h += ".num span.blank{opacity:0}\n";
+    h += ".num span.blank{opacity:0;transition:width .5s ease,opacity .5s ease}\n";
+    // 官网 ShinyNumberArtifact collapseLeadingBlanks：位数<6 时数字全部揭示后收起前导空白位
+    // 并按实际位数放大字号填充结果框（z<=3→text-7xl 72px、4→text-6xl 60px、5→text-5xl 48px、>=6→text-4xl 36px）
+    h += ".num.collapsed span.blank{width:0;overflow:hidden;opacity:0}\n";
+    h += ".num[data-y='1'].collapsed,.num[data-y='2'].collapsed,.num[data-y='3'].collapsed{font-size:72px}\n";
+    h += ".num[data-y='4'].collapsed{font-size:60px}\n";
+    h += ".num[data-y='5'].collapsed{font-size:48px}\n";
     h += ".num span.settle{animation:digit-settle .4s ease-out}\n";
     h += "@keyframes digit-settle{0%{text-shadow:0 0 8px rgba(255,255,255,.9);transform:scale(1.5)}to{text-shadow:0 1px 2px rgba(255,255,255,.5);transform:scale(1)}}\n";
     h += ".dark .num span.settle{animation:digit-settle-dark .4s ease-out}\n";
@@ -16792,8 +16798,10 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
 
     h += "<main>\n<div class=\"page\">\n";
     // ===== 数字卡（逐位数字，官网同款）=====
-    h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\">";
+    // 初始统一 t-common 灰色（官网 showRarityStyle=false 时用 NEUTRAL_ARTIFACT_STYLE），
+    // rarity:reveal 时才切换到最终品质色（data-tier 保存最终等级）
     std::string ns = std::to_string(n);
+    h += "<div class=\"numcard t-common\" data-tier=\"" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\" data-y=\"" + std::to_string((int)ns.size()) + "\">";
     // 抽奖动画：官网固定槽位数 r = max(6, 位数)，前导位为空白位（揭示后透明占位）。
     // 初始全部显示 ? 并滚动，JS 按官网时序逐位揭示为终值（见文件末动画脚本）
     int slots = (int)ns.size() > 6 ? (int)ns.size() : 6;
@@ -16806,9 +16814,9 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "<span class=\"sep\">•</span>\n";
     h += std::string("<span class=\"pct ") + pctCls + "\">" + pctText + "</span>\n</div>\n";
 
-    // ===== EP（动画期间显示官网同款 ??? 占位，数字定住后递增至终值）=====
+    // ===== EP（动画期间显示官网同款 ??? 占位，数字定住后递增至终值；初始 t-common，rarity:reveal 时切品质色）=====
     h += "<div class=\"eprow\">\n";
-    h += "<div class=\"ep-pill t-" + tier + "\">??? EP</div>\n";
+    h += "<div class=\"ep-pill t-common\" data-tier=\"" + tier + "\">??? EP</div>\n";
     h += "<div class=\"life\"><b>0 EP</b><span>Your lifetime EP</span></div>\n";
     h += "</div>\n";
 
@@ -16821,7 +16829,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "</div>\n";
 
     // ===== Badge Breakdown =====
-    h += "<div class=\"bd\">\n<h2>Badge Breakdown</h2>\n";
+    h += "<div class=\"bd\">\n<h2 class=\"anim-wait\">Badge Breakdown</h2>\n";
     h += "<div class=\"bd-sub anim-wait\"><b>" + std::to_string((int)earned.size()) + " badges earned</b></div>\n";
     h += "<div id=\"badge-list\"></div>\n";
     // 徽章卡以 <template> 输出：JS 按出现序（score 升序、同分按官网官方定义序 k 升序——
@@ -16934,6 +16942,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "var nums=["; for (size_t i = 0; i < ns.size(); i++) { h += std::string("'") + ns[i] + "',"; } h += "];\n";
     h += "var total=" + std::to_string(total) + ";\n";
     h += "var digs=[].slice.call(document.querySelectorAll('.num>span'));\n";
+    h += "var numEl=document.querySelector('.num');\n";
     h += "var slots=digs.length,leadBlank=slots-nums.length;\n";
     h += "var list=document.getElementById('badge-list');\n";
     h += "var tpls=[].slice.call(document.querySelectorAll('template.bcard-tpl'));\n";
@@ -16964,6 +16973,8 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  })(i-1);\n";
     h += "  if(i<slots)t+=digitDelay(i-1,slots);\n";
     h += "}\n";
+    // 2b) 位数<6：官网 number:collapse（t+=H=0，全揭示同一时刻）收起前导空白位并放大填充结果框
+    h += "if(nums.length<6)setTimeout(function(){numEl.classList.add('collapsed');},t+20);\n";
     // 3) EP：动画期间显示 ??? EP；徽章逐个出现时 tween 到累计分（官网 badge:r 的 epTo）
     h += "var epValue=0,epTimer=null;\n";
     h += "function epTo(v,dur){\n";
@@ -17001,12 +17012,12 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  })(tpls[r],r);\n";
     h += "  if(r<tpls.length-1)t+=badgeDelay(r,tpls.length);\n";
     h += "}\n";
-    // 5) summary：badges earned 计数
+    // 5) summary：badges earned 计数 + Badge Breakdown 标题（徽章全部展示完成后才显示）
     h += "t+=RT.badgeSummaryDelay;\n";
-    h += "setTimeout(function(){sub.classList.add('anim-in');},t);\n";
-    // 6) rarity：COMMON / BOTTOM 14%
+    h += "setTimeout(function(){sub.classList.add('anim-in');var h2=document.querySelector('.bd h2');if(h2)h2.classList.add('anim-in');},t);\n";
+    // 6) rarity：COMMON / BOTTOM 14%；同时结果框与 EP 框从 common 切到最终品质色（官网 showRarityStyle/ex）
     h += "t+=RT.rarityRevealAfterSummary;\n";
-    h += "setTimeout(function(){meta.classList.add('anim-in');},t);\n";
+    h += "setTimeout(function(){meta.classList.add('anim-in');var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');if(pc&&pc.getAttribute('data-tier'))pc.className=pc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+pc.getAttribute('data-tier');},t);\n";
     // 7) stats：SHARE / NEXT ROLL / SIGN UP
     h += "t+=RT.statsDelayAfterBadges;\n";
     h += "setTimeout(function(){actions.classList.add('anim-in');},t);\n";
