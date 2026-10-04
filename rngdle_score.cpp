@@ -16683,7 +16683,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "@media(min-width:640px){main{padding:32px}}\n";
     h += ".page{max-width:672px;margin:0 auto;padding:0 16px 16px}\n";
     // 数字卡
-    h += ".numcard{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;width:fit-content;max-width:100%;border-radius:12px;padding:20px 32px;border:3px solid var(--tb);background:var(--g);box-shadow:var(--glow),var(--ig);transition:all .5s;animation:num-breathe 3s ease-in-out infinite}\n";
+    h += ".numcard{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;width:208px;height:93px;border-radius:12px;border:3px solid var(--tb);background:var(--g);box-shadow:var(--glow),var(--ig);transition:all .5s;animation:num-breathe 3s ease-in-out infinite}\n";
     h += "@keyframes num-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}\n";
         h += ".num{font-family:var(--font-roll);font-weight:700;font-size:36px;line-height:1.1;display:flex;gap:0;color:var(--tx);text-shadow:0 1px 2px rgba(255,255,255,.5);font-variant-numeric:tabular-nums;transition:font-size .5s ease}\n";
     h += ".dark .num{text-shadow:0 1px 2px rgba(255,255,255,.15)}\n";
@@ -16766,12 +16766,13 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 数字滚动/揭示状态（复刻官网 digit-spin / digit-settle）
     h += ".num span.spin{color:var(--prose-3)}\n";
     h += ".num span.blank{opacity:0;transition:width .5s ease,opacity .5s ease}\n";
-    // 官网 ShinyNumberArtifact collapseLeadingBlanks：位数<6 时数字全部揭示后收起前导空白位
-    // 并按实际位数放大字号填充结果框（z<=3→text-7xl 72px、4→text-6xl 60px、5→text-5xl 48px、>=6→text-4xl 36px）
+    // 官网 ShinyNumberArtifact collapseLeadingBlanks：位数<6 时数字全部揭示后收起前导空白位，
+    // 数字放大填充固定尺寸的结果框（框 208x93 恒定不变，数字居中放大）
+    // 字号：6 位 text-4xl(36px)、5 位 text-5xl(48px)；1~4 位防溢出统一 48px（官网 60/72px 超出固定框）
     h += ".num.collapsed span.blank{width:0;overflow:hidden;opacity:0}\n";
-    h += ".num[data-y='1'].collapsed,.num[data-y='2'].collapsed,.num[data-y='3'].collapsed{font-size:72px}\n";
-    h += ".num[data-y='4'].collapsed{font-size:60px}\n";
     h += ".num[data-y='5'].collapsed{font-size:48px}\n";
+    h += ".num[data-y='4'].collapsed,.num[data-y='3'].collapsed,.num[data-y='2'].collapsed,.num[data-y='1'].collapsed{font-size:48px}\n";
+    h += "@media(max-width:640px){.numcard{width:176px;height:80px}.num{font-size:30px}.num[data-y='5'].collapsed,.num[data-y='4'].collapsed,.num[data-y='3'].collapsed,.num[data-y='2'].collapsed,.num[data-y='1'].collapsed{font-size:40px}}\n";
     h += ".num span.settle{animation:digit-settle .4s ease-out}\n";
     h += "@keyframes digit-settle{0%{text-shadow:0 0 8px rgba(255,255,255,.9);transform:scale(1.5)}to{text-shadow:0 1px 2px rgba(255,255,255,.5);transform:scale(1)}}\n";
     h += ".dark .num span.settle{animation:digit-settle-dark .4s ease-out}\n";
