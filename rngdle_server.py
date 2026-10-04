@@ -14,6 +14,8 @@
 ep_range 用 epMin/epMax 锁定 EP 区间，tier 用 tier 锁定等级，两者需要全量 EP 索引
 ep_index.bin（首次自动用 exe --batch 扫描约 40 秒并缓存）；animation：false 时生成无抽奖动画的静态结果页）。
 所有数值字段都接受 1e7 / 1.5e6 / 1_000_000 这类写法，落盘时统一写成整数。
+config.json 属于本地运行时文件（已在 .gitignore 里，配置页每次保存都会重写它）：
+缺失时用内置默认值（随机 0~999999），启动时会按默认值生成一份；仓库里的模板见 config.example.json。
 启动：python rngdle_server.py  （默认端口 8765，Ctrl+C 退出）
 """
 import os, random, subprocess, sys, time, json, threading, struct, bisect, re
@@ -128,21 +130,33 @@ INJECT_SCRIPT = r"""<script>
 </script>"""
 
 
+# config.json 是纯本地运行时文件（已 gitignore），仓库里只有同样内容的模板 config.example.json。
+# 文件缺失时一律用这份温和默认值：随机 0~999999；服务器启动时会据此生成 config.json 方便手工编辑。
+DEFAULT_CONFIG = {"mode": "random", "min": 0, "max": 999999, "list": [], "fixed": None,
+                  "animation": True, "epMin": 1000000, "epMax": 10000000, "tier": "mythic"}
+
+
 def read_config():
-    """读取 config.json 原文（不校验，便于配置页提示无效值）；返回 (cfg, 错误信息)"""
+    """读取 config.json 原文（不校验，便于配置页提示无效值）；返回 (cfg, 错误信息)。
+
+    文件不存在时返回默认配置（错误信息为 None），这样首次运行的配置页也能正常回填；
+    文件存在但内容坏了才报错，交由页面提示用户修。
+    """
     try:
         with open(CONFIG, encoding="utf-8") as f:
             return json.load(f), None
+    except FileNotFoundError:
+        return dict(DEFAULT_CONFIG), None
     except Exception as e:
         return None, str(e)
 
 
 def load_config():
-    """读取 config.json；出错时回退默认（纯随机 4~6 位）"""
+    """读取 config.json；文件缺失或内容坏了都回退到 DEFAULT_CONFIG（随机 0~999999）"""
     cfg, _ = read_config()
     if isinstance(cfg, dict):
         return cfg
-    return {"mode": "random", "min": 1000, "max": 999999}
+    return dict(DEFAULT_CONFIG)
 
 
 MODES = ("random", "range", "list", "fixed", "ep_range", "tier")
@@ -1006,7 +1020,14 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print("RNGdle 本地服务器 http://127.0.0.1:%d  (Ctrl+C 退出)" % PORT)
+    print("RNGdle 本地服务器 http://127.0.0.1:%d  (Ctrl+C 退出)" % PORT, flush=True)
+    # config.json 是本地文件（已 gitignore）：首次运行按默认值生成一份，方便手工编辑
+    if not os.path.exists(CONFIG):
+        try:
+            write_config(dict(DEFAULT_CONFIG))
+            print("[config] 未找到 config.json，已按默认值生成（随机 0~999999，可手工编辑）", flush=True)
+        except Exception as e:
+            print("[config] 生成 config.json 失败：%s" % e, flush=True)
     # 配置里用到 ep_range/tier 且索引缓存不存在时，启动就在后台扫描（不阻塞服务）
     try:
         if load_config().get("mode") in ("ep_range", "tier") and not os.path.exists(INDEX):

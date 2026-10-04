@@ -14,6 +14,9 @@ _verify/
 ep_index.bin
 ep_index.bin.*
 
+# 抽取配置：本地运行时文件（配置页每次保存都会重写），仓库里只保留模板 config.example.json
+config.json
+
 # Python 缓存
 __pycache__/
 

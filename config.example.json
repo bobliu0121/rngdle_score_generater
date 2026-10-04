@@ -1,0 +1,11 @@
+{
+  "mode": "random",
+  "min": 0,
+  "max": 999999,
+  "list": [],
+  "fixed": null,
+  "animation": true,
+  "epMin": 1000000,
+  "epMax": 10000000,
+  "tier": "mythic"
+}
