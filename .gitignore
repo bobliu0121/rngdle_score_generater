@@ -26,3 +26,7 @@ build_err.txt
 # 开发期测试截图（本地保留，不提交）
 _shots/
 
+# 免安装发布包产物（由 make_release.py 生成）
+release/
+RNGdle_standalone_*.zip
+

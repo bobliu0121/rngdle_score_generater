@@ -24,12 +24,17 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+# 打包成单文件 exe（PyInstaller）后 __file__ 指向临时解包目录，必须改用 exe 自身所在目录；
+# 这样 config.json / ep_index.bin / rngdle_result.html 与 rngdle_score.exe 都在 exe 旁边
+if getattr(sys, "frozen", False):
+    BASE = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    BASE = os.path.dirname(os.path.abspath(__file__))
 EXE = os.path.join(BASE, "rngdle_score.exe")
 RESULT = os.path.join(BASE, "rngdle_result.html")
 CONFIG = os.path.join(BASE, "config.json")
 INDEX = os.path.join(BASE, "ep_index.bin")   # 全量 EP 索引缓存（exe 变化后自动重建）
-PORT = 8765
+PORT = int(os.environ.get("RNGDLE_PORT", "8765") or "8765")   # 可用环境变量 RNGDLE_PORT 改端口
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
 _site_cache = {"t": 0.0, "html": None}
