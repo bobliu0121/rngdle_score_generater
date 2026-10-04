@@ -8,7 +8,8 @@
                          代理官网真实页面并注入拦截脚本）
   GET /generate      -> 按 config.json 设定抽取数字，调 exe 生成结果页并返回完整 HTML
   GET /?num=<数字>   -> 指定数字生成结果页
-抽取配置 config.json（mode：random/list/fixed/range；min/max/list/fixed）。
+抽取配置 config.json（mode：random/list/fixed/range；min/max/list/fixed；
+animation：false 时生成无抽奖动画的静态结果页）。
 启动：python rngdle_server.py  （默认端口 8765，Ctrl+C 退出）
 """
 import os, random, subprocess, sys, time, json
@@ -272,9 +273,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def _run_exe(self, num):
         # 用 --no-open 调用：仅生成 rngdle_result.html，不弹浏览器；
-        # CREATE_NO_WINDOW 让计分 exe 以无窗口方式运行，不额外弹出黑色控制台
+        # CREATE_NO_WINDOW 让计分 exe 以无窗口方式运行，不额外弹出黑色控制台。
+        # config.json 的 animation=false 时附加 --no-anim：生成无抽奖动画的静态结果页
+        args = [EXE, "--no-open"]
+        if not load_config().get("animation", True):
+            args.append("--no-anim")
         try:
-            subprocess.run([EXE, "--no-open"], input=("%d\n" % num).encode("utf-8"),
+            subprocess.run(args, input=("%d\n" % num).encode("utf-8"),
                            cwd=BASE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                            creationflags=subprocess.CREATE_NO_WINDOW,
                            timeout=60)

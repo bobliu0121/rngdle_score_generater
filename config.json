@@ -1,7 +1,10 @@
 {
-  "mode": "random",
+  "mode": "list",
   "min": 0,
-  "max": 999999,
-  "list": [],
-  "fixed": null
+  "max": 99,
+  "list": [
+    6
+  ],
+  "fixed": null,
+  "animation": true
 }

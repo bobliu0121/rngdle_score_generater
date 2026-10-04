@@ -16601,7 +16601,7 @@ static std::string upper(const std::string& s) {
 }
 
 static void writeHtml(ll n, const std::vector<const Badge*>& earned,
-                      const std::vector<const Badge*>& scoring) {
+                      const std::vector<const Badge*>& scoring, bool anim = true) {
     ll total = 0;
     for (size_t i = 0; i < scoring.size(); i++) total += scoring[i]->score;
 
@@ -16685,6 +16685,9 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 数字卡
     h += ".numcard{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;width:208px;height:93px;border-radius:12px;border:3px solid var(--tb);background:var(--g);box-shadow:var(--glow),var(--ig);transition:all .5s;animation:num-breathe 3s ease-in-out infinite}\n";
     h += "@keyframes num-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}\n";
+    // 官网 finale-pulse：数字全部确定（number:collapse）与徽章全出（rarity:reveal）时数字卡各脉冲一次
+    h += "@keyframes finale-pulse{0%{transform:scale(1)}15%{transform:scale(1.25)}40%{transform:scale(.98)}60%{transform:scale(1.03)}to{transform:scale(1)}}\n";
+    h += ".numcard.finale-pulse{animation:finale-pulse .7s ease-out}\n";
         h += ".num{font-family:var(--font-roll);font-weight:700;font-size:36px;line-height:1.1;display:flex;gap:0;color:var(--tx);text-shadow:0 1px 2px rgba(255,255,255,.5);font-variant-numeric:tabular-nums;transition:font-size .5s ease}\n";
     h += ".dark .num{text-shadow:0 1px 2px rgba(255,255,255,.15)}\n";
     h += ".numcard::before{content:'';position:absolute;inset:-1px;pointer-events:none;border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.4) 0%,rgba(255,255,255,.1) 40%,transparent 60%)}\n";
@@ -16799,30 +16802,37 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
 
     h += "<main>\n<div class=\"page\">\n";
     // ===== 数字卡（逐位数字，官网同款）=====
-    // 初始统一 t-common 灰色（官网 showRarityStyle=false 时用 NEUTRAL_ARTIFACT_STYLE），
-    // rarity:reveal 时才切换到最终品质色（data-tier 保存最终等级）
+    // 动画版：初始统一 t-common 灰色（官网 showRarityStyle=false 时用 NEUTRAL_ARTIFACT_STYLE），
+    // rarity:reveal 时才切换到最终品质色（data-tier 保存最终等级）；
+    // 静态版（--no-anim）：直接显示终值数字与最终品质色，数字按位数放大态（collapsed）展示
     std::string ns = std::to_string(n);
-    h += "<div class=\"numcard t-common\" data-tier=\"" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\" data-y=\"" + std::to_string((int)ns.size()) + "\">";
-    // 抽奖动画：官网固定槽位数 r = max(6, 位数)，前导位为空白位（揭示后透明占位）。
-    // 初始全部显示 ? 并滚动，JS 按官网时序逐位揭示为终值（见文件末动画脚本）
     int slots = (int)ns.size() > 6 ? (int)ns.size() : 6;
-    for (int i = 0; i < slots; i++) h += "<span>?</span>";
-    h += "</div>\n</div>\n";
+    if (anim) {
+        h += "<div class=\"numcard t-common\" data-tier=\"" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\" data-y=\"" + std::to_string((int)ns.size()) + "\">";
+        // 抽奖动画：官网固定槽位数 r = max(6, 位数)，前导位为空白位（揭示后透明占位）。
+        // 初始全部显示 ? 并滚动，JS 按官网时序逐位揭示为终值（见文件末动画脚本）
+        for (int i = 0; i < slots; i++) h += "<span>?</span>";
+        h += "</div>\n</div>\n";
+    } else {
+        h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num collapsed\" data-y=\"" + std::to_string((int)ns.size()) + "\">" + ns + "</div>\n</div>\n";
+    }
 
     // ===== 等级 + 百分位（初始隐藏，数字定住后淡入）=====
-    h += "<div class=\"meta anim-wait t-" + tier + "\">\n";
+    h += "<div class=\"meta" + std::string(anim ? " anim-wait" : "") + " t-" + tier + "\">\n";
     h += "<span class=\"pill\">" + upper(tier) + "</span>\n";
     h += "<span class=\"sep\">•</span>\n";
     h += std::string("<span class=\"pct ") + pctCls + "\">" + pctText + "</span>\n</div>\n";
 
-    // ===== EP（动画期间显示官网同款 ??? 占位，数字定住后递增至终值；初始 t-common，rarity:reveal 时切品质色）=====
+    // ===== EP（动画版：动画期间显示官网同款 ??? 占位，数字定住后随徽章累加递增；初始 t-common，rarity:reveal 时切品质色。
+    //      静态版：直接显示最终总 EP 与最终品质色）=====
     h += "<div class=\"eprow\">\n";
-    h += "<div class=\"ep-pill t-common\" data-tier=\"" + tier + "\">??? EP</div>\n";
+    if (anim) h += "<div class=\"ep-pill t-common\" data-tier=\"" + tier + "\">??? EP</div>\n";
+    else h += "<div class=\"ep-pill t-" + tier + "\">" + withCommas(total) + " EP</div>\n";
     h += "<div class=\"life\"><b>0 EP</b><span>Your lifetime EP</span></div>\n";
     h += "</div>\n";
 
-    // ===== 操作行（官网 stats:show 时整体淡入：SHARE / NEXT ROLL / SIGN UP）=====
-    h += "<div class=\"actions anim-wait\">\n<div class=\"action-row\">\n";
+    // ===== 操作行（动画版 stats:show 时整体淡入：SHARE / NEXT ROLL / SIGN UP；静态版直接显示）=====
+    h += "<div class=\"actions" + std::string(anim ? " anim-wait" : "") + "\">\n<div class=\"action-row\">\n";
     h += "<button class=\"share-btn\" type=\"button\" onclick=\"copyShare()\"><svg id=\"share-ic\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"18\" cy=\"5\" r=\"3\"/><circle cx=\"6\" cy=\"12\" r=\"3\"/><circle cx=\"18\" cy=\"19\" r=\"3\"/><line x1=\"8.59\" x2=\"15.42\" y1=\"13.51\" y2=\"17.49\"/><line x1=\"15.41\" x2=\"8.59\" y1=\"6.51\" y2=\"10.49\"/></svg><span class=\"share-txt\" id=\"share-txt\">Share</span></button>\n";
     h += "<div class=\"nextroll\"><span>Next roll in</span><b id=\"countdown\">--h --m --s</b></div>\n";
     h += "</div>\n";
@@ -16830,13 +16840,16 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "</div>\n";
 
     // ===== Badge Breakdown =====
-    h += "<div class=\"bd\">\n<h2 class=\"anim-wait\">Badge Breakdown</h2>\n";
-    h += "<div class=\"bd-sub anim-wait\"><b>" + std::to_string((int)earned.size()) + " badges earned</b></div>\n";
-    h += "<div id=\"badge-list\"></div>\n";
-    // 徽章卡以 <template> 输出：JS 按出现序（score 升序、同分按官网官方定义序 k 升序——
+    // 动画版：h2 随第一个徽章出现（badge:1 时 anim-in，官网 eE>0 条件渲染），
+    // bd-sub 在 summary（徽章全部展示完成）时淡入（官网 eT opacity 切换）；
+    // 静态版（--no-anim）：标题与全部徽章直接显示，徽章按显示序（score 降序）一次性列出
+    h += "<div class=\"bd\">\n<h2" + std::string(anim ? " class=\"anim-wait\"" : "") + ">Badge Breakdown</h2>\n";
+    h += "<div class=\"bd-sub" + std::string(anim ? " anim-wait" : "") + "\"><b>" + std::to_string((int)earned.size()) + " badges earned</b></div>\n";
+    h += "<div id=\"badge-list\">\n";
+    // 动画版：徽章卡以 <template> 输出，JS 按出现序（score 升序、同分按官网官方定义序 k 升序——
     // 元素 HYDROGEN→FLUORINE 原子序升序，非元素 k=Infinity 保持表序）逐个克隆插入
     // #badge-list，并按 score 降序定位（实时重排），复刻官网 G() 排序 + 渲染列表
-    // eW.slice().reverse() 降序排列的动画效果。
+    // eW.slice().reverse() 降序排列的动画效果；静态版直接用显示序（score 降序）一次性渲染。
     std::vector<const Badge*> appear = ordered;
     std::sort(appear.begin(), appear.end(),
               [](const Badge* a, const Badge* b) {
@@ -16845,13 +16858,19 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
                   if (oa != ob) return oa < ob;
                   return (a - &BADGES[0]) < (b - &BADGES[0]);
               });
-    for (size_t i = 0; i < appear.size(); i++) {
-        const Badge* b = appear[i];
+    const std::vector<const Badge*>& renderOrder = anim ? appear : ordered;
+    for (size_t i = 0; i < renderOrder.size(); i++) {
+        const Badge* b = renderOrder[i];
         std::string bt = badgeTier(b->score);
         int ds = displayRank(b->id);
-        h += "<template class=\"bcard-tpl\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
-        h += "<div class=\"bgroup\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
-        // 徽章卡初始不渲染，出现时由 JS 克隆插入并播放上浮淡入动画
+        if (anim) {
+            h += "<template class=\"bcard-tpl\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
+            h += "<div class=\"bgroup\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
+        } else {
+            // 静态版：徽章卡直接渲染（in 态），无需 JS 插入
+            h += "<div class=\"bgroup in\" data-s=\"" + std::to_string(b->score) + "\" data-k=\"" + std::to_string(ds) + "\" data-i=\"" + std::to_string(i) + "\">\n";
+        }
+        // 徽章卡初始不渲染（动画版），出现时由 JS 克隆插入并播放上浮淡入动画
         h += "<div class=\"bcard t-" + bt + "\">\n";
         h += "<div class=\"bhead\"><div class=\"btitle\"><span class=\"bemoji\">" + std::string(emojiOf(b->id)) + "</span><span class=\"bname\">" + b->label + "</span><span class=\"pill bpill\">" + upper(bt) + "</span></div><span class=\"bep\">+" + withCommas(b->score) + " EP</span></div>\n";
         h += "<p class=\"bdesc\">" + std::string(descOf(b->id)) + "</p>\n";
@@ -16898,7 +16917,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
             h += "<div class=\"bsub\"><span>└</span><span class=\"bemoji\">" + std::string(emojiOf(sub->id)) + "</span><span class=\"sub-name\">" + sub->label + "</span><span class=\"earned\">(earned)</span></div>\n";
         }
         h += "</div>\n";
-        h += "</template>\n";
+        if (anim) h += "</template>\n";
     }
     h += "</div>\n";
     h += "</div>\n";
@@ -16937,7 +16956,9 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // ===== 抽奖动画（复刻官网 ROLL_REVEAL_TIMING 精确时序，来自官网 896deb/c00485 chunk）=====
     // 数字：0~2s 全槽滚动（100ms/帧灰色随机数）→ 2s 起逐位揭示（二次加速，最后一位 +2s 定格）
     // → 徽章按出现序（score 升序）逐个上浮淡入，并实时重排为 score 降序显示；
-    // EP 随每个徽章出现 tween 到"已出现徽章分之和"；随后 summary → rarity → stats 依次出现
+    // EP 随每个徽章出现 tween 到"已出现徽章分之和"；随后 summary → rarity → stats 依次出现。
+    // 仅在动画版（config animation=true / 未传 --no-anim）输出；静态版直接显示终态
+    if (anim) {
     h += "<script>\n";
     h += "(function(){\n";
     h += "var nums=["; for (size_t i = 0; i < ns.size(); i++) { h += std::string("'") + ns[i] + "',"; } h += "];\n";
@@ -16974,8 +16995,11 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  })(i-1);\n";
     h += "  if(i<slots)t+=digitDelay(i-1,slots);\n";
     h += "}\n";
-    // 2b) 位数<6：官网 number:collapse（t+=H=0，全揭示同一时刻）收起前导空白位并放大填充结果框
-    h += "if(nums.length<6)setTimeout(function(){numEl.classList.add('collapsed');},t+20);\n";
+    // 2b) 官网 pulseKey：number:collapse（数字全部确定）与 rarity:reveal（徽章全出）时，
+    // 数字卡各触发一次 animate-finale-pulse（0.7s：scale 1→1.25→0.98→1.03→1 迅速放大后恢复）
+    h += "var nc0=document.querySelector('.numcard');\n";
+    h += "function finalePulse(){if(nc0){nc0.classList.add('finale-pulse');setTimeout(function(){nc0.classList.remove('finale-pulse');},700);}}\n";
+    h += "setTimeout(function(){if(nums.length<6)numEl.classList.add('collapsed');finalePulse();},t+20);\n";
     // 3) EP：动画期间显示 ??? EP；徽章逐个出现时 tween 到累计分（官网 badge:r 的 epTo）
     h += "var epValue=0,epTimer=null;\n";
     h += "function epTo(v,dur){\n";
@@ -17002,6 +17026,8 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  requestAnimationFrame(function(){requestAnimationFrame(function(){g.classList.add('in');});});\n";
     h += "}\n";
     h += "t+=RT.badgeStartAfterNumber;\n";
+    // 4b) Badge Breakdown 标题随第一个徽章一起出现（官网 eE>0 条件渲染：badge:1 时显示）
+    h += "setTimeout(function(){var h2=document.querySelector('.bd h2');if(h2)h2.classList.add('anim-in');},t+10);\n";
     h += "var acc=0;\n";
     h += "for(var r=0;r<tpls.length;r++){\n";
     h += "  (function(tpl,r){\n";
@@ -17013,12 +17039,13 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  })(tpls[r],r);\n";
     h += "  if(r<tpls.length-1)t+=badgeDelay(r,tpls.length);\n";
     h += "}\n";
-    // 5) summary：badges earned 计数 + Badge Breakdown 标题（徽章全部展示完成后才显示）
+    // 5) summary：badges earned 计数（徽章全部展示完成后才显示；Badge Breakdown 标题已随第一个徽章出现）
     h += "t+=RT.badgeSummaryDelay;\n";
-    h += "setTimeout(function(){sub.classList.add('anim-in');var h2=document.querySelector('.bd h2');if(h2)h2.classList.add('anim-in');},t);\n";
-    // 6) rarity：COMMON / BOTTOM 14%；同时结果框与 EP 框从 common 切到最终品质色（官网 showRarityStyle/ex）
+    h += "setTimeout(function(){sub.classList.add('anim-in');},t);\n";
+    // 6) rarity：COMMON / BOTTOM 14%；同时结果框与 EP 框从 common 切到最终品质色（官网 showRarityStyle/ex），
+    //    并触发第二次 finale-pulse（pulseKey=2）
     h += "t+=RT.rarityRevealAfterSummary;\n";
-    h += "setTimeout(function(){meta.classList.add('anim-in');var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');if(pc&&pc.getAttribute('data-tier'))pc.className=pc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+pc.getAttribute('data-tier');},t);\n";
+    h += "setTimeout(function(){meta.classList.add('anim-in');finalePulse();var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');if(pc&&pc.getAttribute('data-tier'))pc.className=pc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+pc.getAttribute('data-tier');},t);\n";
     // 7) stats：SHARE / NEXT ROLL / SIGN UP
     h += "t+=RT.statsDelayAfterBadges;\n";
     h += "setTimeout(function(){actions.classList.add('anim-in');},t);\n";
@@ -17026,6 +17053,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "setTimeout(function(){if(typeof initBreathing==='function')initBreathing();},t+100);\n";
     h += "})();\n";
     h += "</script>\n";
+    } // if(anim)：静态版（--no-anim）跳过整个抽奖动画脚本，直接展示终态
 
     h += "<div class=\"toast\" id=\"toast\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/></svg><span>Copied to clipboard</span></div>\n";
     h += "<script>\n";
@@ -17106,8 +17134,13 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     // 交互模式：输入一个数字 -> 生成结果页 -> 自动用默认浏览器打开 -> 退出。
-    // 加 --no-open 参数（如服务器调用）时不打开浏览器，仅生成 rngdle_result.html。
-    bool openBrowser = !(argc > 1 && std::string(argv[1]) == "--no-open");
+    // 参数：--no-open 不打开浏览器（服务器调用）；--no-anim 生成无抽奖动画的静态结果页
+    //（由 server.py 依据 config.json 的 animation 选项决定是否传递）。
+    bool openBrowser = true, anim = true;
+    for (int i = 1; i < argc; i++) {
+        if (std::string(argv[i]) == "--no-open") openBrowser = false;
+        if (std::string(argv[i]) == "--no-anim") anim = false;
+    }
     printf("RNGdle 计分器 (0~1000000)\n");
     printf("输入数字: ");
     ll n;
@@ -17133,8 +17166,9 @@ int main(int argc, char* argv[]) {
         const Badge* b = ordered[i];
         printf("    %-30s %-24s %lld\n", b->label, b->id, b->score);
     }
-    // 生成与 rngdle.com 同风格的结果展示页（内含数字滚动/EP 递增/徽章逐个亮起等抽奖动画）
-    writeHtml(n, earned, scoring);
+    // 生成与 rngdle.com 同风格的结果展示页（含数字滚动/EP 递增/徽章逐个亮起等抽奖动画；
+    // --no-anim 时生成无动画静态终态页）
+    writeHtml(n, earned, scoring, anim);
     if (openBrowser) {
         // 自动用默认浏览器打开结果页（cwd 下的 rngdle_result.html）
         wchar_t html_path[MAX_PATH];
