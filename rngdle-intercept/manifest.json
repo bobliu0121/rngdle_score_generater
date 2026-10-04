@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "RNGdle 本地结果拦截",
+  "version": "1.0.0",
+  "description": "在 rngdle.com 点击 GENERATE 后拦截官网结果，改为展示本地 rngdle_score.exe 生成的网页（含官网同款抽奖动画）。需先运行 rngdle_server.py。",
+  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.rngdle.com/*",
+        "https://rngdle.com/*",
+        "http://www.rngdle.com/*",
+        "http://rngdle.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

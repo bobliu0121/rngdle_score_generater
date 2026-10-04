@@ -1,0 +1,17 @@
+# 编译产物
+*.exe
+
+# 运行时生成的结果页（每次运行覆盖）
+rngdle_result.html
+
+# 官网取证 / 批量计算中间产物
+_verify/
+
+# 百分位数据文件（已内联进 rngdle_score.cpp，无需提交）
+*.dat
+
+# Python 缓存
+__pycache__/
+
+# 编译日志等临时文件
+build_err.txt
