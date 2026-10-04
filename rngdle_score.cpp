@@ -16682,13 +16682,26 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "main{flex:1;width:100%;margin:0 auto;padding:8px 8px 16px}\n";
     h += "@media(min-width:640px){main{padding:32px}}\n";
     h += ".page{max-width:672px;margin:0 auto;padding:0 16px 16px}\n";
-    // 数字卡（框样式与第一版一致：fit-content 自适应、padding 20px 32px；数字 36px 恒定）
+    // 数字卡终态（第一版 f8bad04 样式：fit-content 自适应、padding 20px 32px）——
+    // 这是逐位揭示完成后结果框要落到（settleBox 移除 .rolling 后）的样式；字号见下方 .num[data-y] 阶梯
     h += ".numcard{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;width:fit-content;max-width:100%;padding:20px 32px;border-radius:12px;border:3px solid var(--tb);background:var(--g);box-shadow:var(--glow),var(--ig);transition:all .5s;animation:num-breathe 3s ease-in-out infinite}\n";
+    // 滚动/逐位揭示期间的结果框：沿用上一版的固定 208×93 大框（padding 0，让 6 位槽位居中）；
+    // 字号由 .num[data-y] 阶梯统一决定，与终态完全一致——揭示过程只滚动，框形在揭示完成时才切回第一版
+    h += ".numcard.rolling{width:208px;height:93px;padding:0}\n";
+    // 切换到第一版的瞬间关闭过渡：使结果框一次性落到第一版尺寸/内边距，而不被 padding、空白位过渡拆成几段
+    h += ".numcard.settle-snap,.numcard.settle-snap .num,.numcard.settle-snap .num span{transition:none!important}\n";
+    // 终态（非滚动期）取消 .num>span 的 min-width 占位：第一版没有该规则，框宽应等于纯字形宽度
+    // （滚动期保留 .62em 占位以免滚动数字导致版式抖动；每字多占 0.02em，36px 时约 0.7px/字、48px 时约 1px/字）
+    h += ".numcard:not(.rolling) .num>span{min-width:0}\n";
     h += "@keyframes num-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}\n";
     // 官网 finale-pulse：数字全部确定（number:collapse）与徽章全出（rarity:reveal）时数字卡各脉冲一次
     h += "@keyframes finale-pulse{0%{transform:scale(1)}15%{transform:scale(1.25)}40%{transform:scale(.98)}60%{transform:scale(1.03)}to{transform:scale(1)}}\n";
     h += ".numcard.finale-pulse{animation:finale-pulse .7s ease-out}\n";
         h += ".num{font-family:var(--font-roll);font-weight:700;font-size:36px;line-height:1.1;display:flex;gap:0;color:var(--tx);text-shadow:0 1px 2px rgba(255,255,255,.5);font-variant-numeric:tabular-nums}\n";
+    // 字号阶梯（按位数，data-y=实际位数）：滚动/逐位揭示期间一律用 6 位的 36px（上面 .num 规则），
+    // 揭示完成（settleBox 移除 .rolling）后才放大到 5 位及以下的 48px，4 位及以下封顶 48px（窄屏 40px）。
+    // .numcard:not(.rolling) 限定保证放大只发生在终态；配合空白位收起，数字同时从 6 槽位块的偏右位置移到框中央
+    h += ".numcard:not(.rolling) .num[data-y='5'],.numcard:not(.rolling) .num[data-y='4'],.numcard:not(.rolling) .num[data-y='3'],.numcard:not(.rolling) .num[data-y='2'],.numcard:not(.rolling) .num[data-y='1']{font-size:48px}\n";
     h += ".dark .num{text-shadow:0 1px 2px rgba(255,255,255,.15)}\n";
     h += ".numcard::before{content:'';position:absolute;inset:-1px;pointer-events:none;border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.4) 0%,rgba(255,255,255,.1) 40%,transparent 60%)}\n";
     h += ".dark .numcard::before{opacity:.4}\n";
@@ -16708,7 +16721,9 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".pct-red{color:#ef4444}\n";
     // EP 行
     h += ".eprow{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:16px}\n";
-    h += ".ep-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-family:var(--font-roll);font-weight:600;font-size:1rem;color:var(--tx);background:var(--pb);border:1px solid var(--pbd);font-variant-numeric:tabular-nums}\n";
+    // 总 EP 数字用等级色 --pt（与等级 pill 同色，如 MYTHIC 为 #b91c1c / 暗色 #f87171 红色），
+    // 背景与描边沿用等级的 --pb / --pbd
+    h += ".ep-pill{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-family:var(--font-roll);font-weight:600;font-size:1rem;color:var(--pt);background:var(--pb);border:1px solid var(--pbd);font-variant-numeric:tabular-nums}\n";
     h += ".life{display:flex;flex-direction:column;align-items:center;color:var(--prose-3);font-size:.75rem;margin-top:4px;line-height:1rem}\n";
     h += ".life b{font-family:var(--font-roll);color:var(--prose-2);font-weight:600;font-size:1rem}\n";
     // 操作行
@@ -16769,10 +16784,12 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 数字滚动/揭示状态（复刻官网 digit-spin / digit-settle）
     h += ".num span.spin{color:var(--prose-3)}\n";
     h += ".num span.blank{opacity:0;transition:width .5s ease,opacity .5s ease}\n";
-    // 位数<6 时数字全部揭示后收起前导空白位：框为 fit-content（第一版自适应样式），
-    // 数字保持 36px 恒定；收起后框宽收敛到实际数字宽度
-    h += ".num.collapsed span.blank{width:0;overflow:hidden;opacity:0}\n";
-    h += "@media(max-width:640px){.num{font-size:30px}.numcard{padding:16px 20px}}\n";
+    // 位数<6 时数字全部揭示后收起前导空白位（settleBox 加 .collapsed）：框回到 fit-content，
+    // 宽度收敛到实际数字宽度，即第一版结果框的宽度。
+    // 注意 min-width:0 是必需的：.num>span 的 min-width:.62em 会把 width:0 钳住，导致空白位收不掉
+    h += ".num.collapsed span.blank{width:0;min-width:0;overflow:hidden;opacity:0}\n";
+    // 窄屏：滚动期固定框等比缩小；字号阶梯同为 6 位 30px、5 位及以下 40px（两阶段一致）
+    h += "@media(max-width:640px){.num{font-size:30px}.numcard:not(.rolling) .num[data-y='5'],.numcard:not(.rolling) .num[data-y='4'],.numcard:not(.rolling) .num[data-y='3'],.numcard:not(.rolling) .num[data-y='2'],.numcard:not(.rolling) .num[data-y='1']{font-size:40px}.numcard{padding:16px 20px}.numcard.rolling{width:176px;height:80px;padding:0}}\n";
     h += ".num span.settle{animation:digit-settle .4s ease-out}\n";
     h += "@keyframes digit-settle{0%{text-shadow:0 0 8px rgba(255,255,255,.9);transform:scale(1.5)}to{text-shadow:0 1px 2px rgba(255,255,255,.5);transform:scale(1)}}\n";
     h += ".dark .num span.settle{animation:digit-settle-dark .4s ease-out}\n";
@@ -16802,17 +16819,20 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 动画版：初始统一 t-common 灰色（官网 showRarityStyle=false 时用 NEUTRAL_ARTIFACT_STYLE），
     // rarity:reveal 时才切换到最终品质色（data-tier 保存最终等级）；
     // 静态版（--no-anim）：直接显示终值数字与最终品质色
-    // 框样式与第一版一致：fit-content 自适应 + padding 20px 32px，数字 36px 恒定
+    // 框样式：动画版在滚动/逐位揭示期间为 .rolling 固定 208x93 大框，字号一律用 6 位的 36px（窄屏 30px）；
+    // 末位揭示完成后 settleBox() 移除 .rolling，落到第一版 fit-content + padding 20px 32px，
+    // 同时按 .num[data-y] 阶梯放大到 48px（窄屏 40px）并收起前导空白位把数字移到中央；
+    // 静态版（--no-anim）直接就是终态：第一版框样式 + 阶梯字号
     std::string ns = std::to_string(n);
     int slots = (int)ns.size() > 6 ? (int)ns.size() : 6;
     if (anim) {
-        h += "<div class=\"numcard t-common\" data-tier=\"" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\">";
+        h += "<div class=\"numcard rolling t-common\" data-tier=\"" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\" data-y=\"" + std::to_string((int)ns.size()) + "\">";
         // 抽奖动画：官网固定槽位数 r = max(6, 位数)，前导位为空白位（揭示后透明占位）。
         // 初始全部显示 ? 并滚动，JS 按官网时序逐位揭示为终值（见文件末动画脚本）
         for (int i = 0; i < slots; i++) h += "<span>?</span>";
         h += "</div>\n</div>\n";
     } else {
-        h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\">" + ns + "</div>\n</div>\n";
+        h += "<div class=\"numcard t-" + tier + "\">\n<span class=\"shimmer\"></span>\n<div class=\"num\" data-y=\"" + std::to_string((int)ns.size()) + "\">" + ns + "</div>\n</div>\n";
     }
 
     // ===== 等级 + 百分位（初始隐藏，数字定住后淡入）=====
@@ -16994,11 +17014,24 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  if(i<slots)t+=digitDelay(i-1,slots);\n";
     h += "}\n";
     // 2b) 官网 pulseKey：number:collapse（数字全部确定）与 rarity:reveal（徽章全出）时，
-    // 数字卡各触发一次 animate-finale-pulse（0.7s：scale 1→1.25→0.98→1.03→1 迅速放大后恢复）；
-    // 位数<6 时同时收起前导空白位，使 fit-content 框收敛到实际数字宽度（第一版框样式）
+    // 数字卡各触发一次 animate-finale-pulse（0.7s：scale 1→1.25→0.98→1.03→1 迅速放大后恢复）
     h += "var nc0=document.querySelector('.numcard');\n";
     h += "function finalePulse(){if(nc0){nc0.classList.add('finale-pulse');setTimeout(function(){nc0.classList.remove('finale-pulse');},700);}}\n";
-    h += "setTimeout(function(){if(nums.length<6)numEl.classList.add('collapsed');finalePulse();},t+20);\n";
+    // 末位数字揭示完成（number:collapse）：结果框从滚动期样式切到第一版终态——
+    // 移除 .rolling（回到 fit-content + padding 20px 32px）；位数<6 时同时加 .collapsed 收起前导空白位，
+    // 并把字号从 6 位的 36px 放大到阶梯值（48px，窄屏 40px），数字随之从 6 槽位块的偏右位置移到框中央。
+    // 切换瞬间加 .settle-snap 关掉过渡，使框与字号一次性落位（否则 padding 过渡、高度跳变与放大过程会拆成几段）；
+    // 强制重排（读 offsetWidth）后立刻移除该 class，恢复过渡供 finale-pulse 与呼吸灯使用。
+    h += "function settleBox(){\n";
+    h += "  if(!nc0)return;\n";
+    h += "  nc0.classList.add('settle-snap');\n";
+    h += "  nc0.classList.remove('rolling');\n";
+    h += "  if(nums.length<6)numEl.classList.add('collapsed');\n";
+    h += "  void nc0.offsetWidth;\n";
+    h += "  nc0.classList.remove('settle-snap');\n";
+    h += "  finalePulse();\n";
+    h += "}\n";
+    h += "setTimeout(settleBox,t+20);\n";
     // 3) EP：动画期间显示 ??? EP；徽章逐个出现时 tween 到累计分（官网 badge:r 的 epTo）
     h += "var epValue=0,epTimer=null;\n";
     h += "function epTo(v,dur){\n";
