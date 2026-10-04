@@ -109,10 +109,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(html)
 
     def _run_exe(self, num):
-        # 用 --no-open 调用：仅生成 rngdle_result.html，不弹浏览器
+        # 用 --no-open 调用：仅生成 rngdle_result.html，不弹浏览器；
+        # CREATE_NO_WINDOW 让计分 exe 以无窗口方式运行，不额外弹出黑色控制台
         try:
             subprocess.run([EXE, "--no-open"], input=("%d\n" % num).encode("utf-8"),
                            cwd=BASE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           creationflags=subprocess.CREATE_NO_WINDOW,
                            timeout=60)
             with open(RESULT, "r", encoding="utf-8") as f:
                 return f.read()
