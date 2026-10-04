@@ -222,6 +222,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
+        # Chrome 新版对「公网 https 页面 → 回环地址」的请求强制 Private Network Access
+        # 预检；缺此头会直接 Failed to fetch（net::ERR_BLOCKED_BY_CLIENT / PNA 拦截）。
+        self.send_header("Access-Control-Allow-Private-Network", "true")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         try:
@@ -286,6 +289,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
         self.send_header("Content-Length", "0")
         self.end_headers()
 
