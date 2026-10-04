@@ -16130,6 +16130,16 @@ static int displayRank(const char* id) {
         if (!std::strcmp(id, T[i].id)) return T[i].r;
     return 1000;
 }
+// 官网官方定义序 k 表（c00485 chunk verbatim）：
+//   let k=new Map((N.find(e=>"periodic-table"===e.id)?.badgeIds??[]).map((e,a)=>[e,a]));
+//   periodic-table 组 badgeIds = HYDROGEN,HELIUM,LITHIUM,BERYLLIUM,BORON,CARBON,NITROGEN,OXYGEN,FLUORINE（原子序升序）
+// 出现序（G()）同分时按 k 升序；不在表中的徽章 k=Infinity（排在元素徽章之后，保持稳定序）
+static int officialRank(const char* id) {
+    static const char* E[] = { "HYDROGEN","HELIUM","LITHIUM","BERYLLIUM","BORON","CARBON","NITROGEN","OXYGEN","FLUORINE" };
+    for (int i = 0; i < 9; i++)
+        if (!std::strcmp(id, E[i])) return i;
+    return INT_MAX;  // 官网 k.get(e.id) ?? Infinity
+}
 // 计分徽章统一排序：按 EP 降序；同 EP 按官网显示序（元素原子序降序 / LIFTOFF 先于 EVEN、ODD），再按表序
 // 控制台输出与结果页共用，保证与官网显示一致
 static std::vector<const Badge*> orderedBadges(const std::vector<const Badge*>& scoring) {
@@ -16814,15 +16824,16 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "<div class=\"bd\">\n<h2>Badge Breakdown</h2>\n";
     h += "<div class=\"bd-sub anim-wait\"><b>" + std::to_string((int)earned.size()) + " badges earned</b></div>\n";
     h += "<div id=\"badge-list\"></div>\n";
-    // 徽章卡以 <template> 输出：JS 按出现序（score 升序、同分按官网显示序 displayRank 升序）
-    // 逐个克隆插入 #badge-list，并按 score 降序定位（实时重排），复刻官网
-    // eW(升序逐个出现) + 渲染列表实时降序排列的动画效果。
+    // 徽章卡以 <template> 输出：JS 按出现序（score 升序、同分按官网官方定义序 k 升序——
+    // 元素 HYDROGEN→FLUORINE 原子序升序，非元素 k=Infinity 保持表序）逐个克隆插入
+    // #badge-list，并按 score 降序定位（实时重排），复刻官网 G() 排序 + 渲染列表
+    // eW.slice().reverse() 降序排列的动画效果。
     std::vector<const Badge*> appear = ordered;
     std::sort(appear.begin(), appear.end(),
               [](const Badge* a, const Badge* b) {
                   if (a->score != b->score) return a->score < b->score;
-                  int ra = displayRank(a->id), rb = displayRank(b->id);
-                  if (ra != rb) return ra < rb;
+                  int oa = officialRank(a->id), ob = officialRank(b->id);
+                  if (oa != ob) return oa < ob;
                   return (a - &BADGES[0]) < (b - &BADGES[0]);
               });
     for (size_t i = 0; i < appear.size(); i++) {
@@ -16966,7 +16977,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "    if(p>=1){clearInterval(epTimer);epValue=v;ep.textContent=v.toLocaleString('en-US')+' EP';}\n";
     h += "  },30);\n";
     h += "}\n";
-    // 4) 徽章逐个出现（出现序=template DOM 序=score 升序+displayRank 升序），插入到 score 降序位置（实时重排）
+    // 4) 徽章逐个出现（出现序=template DOM 序=score 升序+官网官方定义序 k 升序），插入到 score 降序位置（实时重排）
     h += "function insertBadge(tpl){\n";
     h += "  var g=tpl.content.firstElementChild.cloneNode(true);\n";
     h += "  var s=parseInt(tpl.dataset.s),k=parseInt(tpl.dataset.k),i=parseInt(tpl.dataset.i);\n";
