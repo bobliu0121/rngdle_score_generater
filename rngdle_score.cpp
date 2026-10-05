@@ -16727,8 +16727,11 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 精确复现幅度与速度曲线（Chrome 对 y>1 的 cubic-bezier 动画不播放，故不用 overshoot easing）。
     h += "@keyframes pill-pop{0%{transform:scale(.5)}10%{transform:scale(.76)}20%{transform:scale(.94)}30%{transform:scale(1.05)}40%{transform:scale(1.11)}50%{transform:scale(1.13)}60%{transform:scale(1.11)}70%{transform:scale(1.08)}80%{transform:scale(1.04)}90%{transform:scale(1.01)}100%{transform:scale(1)}}\n";
     h += "@keyframes pct-pop{0%{transform:scale(.9)}10%{transform:scale(.94)}20%{transform:scale(.97)}30%{transform:scale(.99)}40%{transform:scale(1)}50%{transform:scale(1.01)}60%{transform:scale(1.01)}70%{transform:scale(1.01)}80%{transform:scale(1)}90%{transform:scale(1)}100%{transform:scale(1)}}\n";
-    h += ".meta.anim-in .pill{animation:pill-pop .4s linear .1s}\n";
-    h += ".meta.anim-in .pct{animation:pct-pop .5s linear .01s}\n";
+    // fill-mode backwards：gsap fromTo 的 from 值（scale .5/.9）在 delay 期间立即应用；
+    // CSS animation 若不加 backwards，delay 期间元素保持无动画状态（scale 1 正常标签），
+    // 会造成"先闪正常标签、delay 结束后才从 .5 放大被覆盖"。
+    h += ".meta.anim-in .pill{animation:pill-pop .4s linear .1s backwards}\n";
+    h += ".meta.anim-in .pct{animation:pct-pop .5s linear .01s backwards}\n";
     // EP 行
     h += ".eprow{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:16px}\n";
     // 总 EP 数字用等级色 --pt（与等级 pill 同色，如 MYTHIC 为 #b91c1c / 暗色 #f87171 红色），
