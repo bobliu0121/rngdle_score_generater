@@ -17149,7 +17149,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  if(sub){sub.style.transition='none';sub.classList.add('anim-in');}\n";
     h += "  if(actions){actions.style.transition='none';actions.classList.add('anim-in');}\n";
     h += "  var lf=document.querySelector('.life');if(lf){lf.style.transition='none';lf.classList.add('anim-in');}\n";
-    h += "  setTimeout(function(){var mm=document.querySelector('.meta');if(!mm)return;mm.classList.remove('anim-in');mm.classList.add('anim-wait');mm.style.transition='none';void mm.offsetWidth;mm.classList.remove('anim-wait');mm.classList.add('anim-in');var pp=mm.querySelector('.pill'),cc=mm.querySelector('.pct');if(pp){pp.style.animation='none';void pp.offsetWidth;pp.style.animation='';}if(cc){cc.style.animation='none';void cc.offsetWidth;cc.style.animation='';}},150);\n";
+    h += "  setTimeout(function(){var mm=document.querySelector('.meta');if(!mm)return;mm.classList.remove('anim-in');mm.classList.add('anim-wait');mm.style.transition='none';void mm.offsetWidth;mm.classList.remove('anim-wait');mm.classList.add('anim-in');},150);\n";
     h += "  epValue=total;ep.textContent=total.toLocaleString('en-US')+' EP';\n";
     h += "  var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');\n";
     h += "  if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');\n";
