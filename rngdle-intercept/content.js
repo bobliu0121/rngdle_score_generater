@@ -120,15 +120,19 @@
       c.remove();
       s.remove();
     };
-    s.onclick = () => {
-      skipped = true;
-      requestSkip();
-      s.remove();
-    };
+    // 恢复场景（刷新后直接展示终态，动画已播完）不显示"跳过动画"按钮——
+    // 按钮只在动画播放中（非恢复）才创建并添加；skipped=true 时保活也不再补回。
+    if (!recover) {
+      s.onclick = () => {
+        skipped = true;
+        requestSkip();
+        s.remove();
+      };
+      document.documentElement.appendChild(s);
+    }
 
     document.documentElement.appendChild(f);
     document.documentElement.appendChild(c);
-    document.documentElement.appendChild(s);
     f.srcdoc = html;
 
     // 恢复场景：等结果页脚本就绪（data-rngdle-skip=1）后立即派发 rngdle-skip 事件跳过动画。
