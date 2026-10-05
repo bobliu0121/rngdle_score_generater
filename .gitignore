@@ -30,3 +30,16 @@ _shots/
 release/
 RNGdle_standalone_*.zip
 
+# 全量 EP 排名（26MB 级，本地查看用，不入库）
+RNGdle_全量EP排名.xlsx
+RNGdle_全量EP排名.md
+
+# 徽章图鉴（供本地 Excel 查看，不入库；md 版入库存档）
+RNGdle_徽章图鉴.xlsx
+
+# 徽章数据提取临时文件
+_badge_extract.py
+_badge_gen_*.py
+_badges_raw.json
+_emoji.json
+
