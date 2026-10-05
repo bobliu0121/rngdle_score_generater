@@ -16719,12 +16719,12 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".pct-emerald{color:#10b981}\n";
     h += ".pct-orange{color:#f97316}\n";
     h += ".pct-red{color:#ef4444}\n";
-    // 等级标签 + 百分位的展示放大效果（官网 gsap：pill scale .5→1、0.4s delay .1s back.out(3)；
-    // pct 随 meta 容器 scale .9→1 外再给轻微独立弹入）。挂在 .meta.anim-in 下：
+    // 等级标签 + 百分位的展示放大效果（官网 gsap：pill scale .5→1、0.4s delay .1s back.out(3)，
+    // 峰值明显回弹；pct 随 meta 容器 scale .9→1 外再给轻微独立弹入）。挂在 .meta.anim-in 下：
     // 自然动画的 rarity 阶段与刷新恢复（finish 补 anim-in）都会触发，刷新已展示结果时只有这两个放大。
-    h += "@keyframes pill-pop{0%{transform:scale(.5)}60%{transform:scale(1.12)}100%{transform:scale(1)}}\n";
-    h += "@keyframes pct-pop{0%{transform:scale(.85)}60%{transform:scale(1.07)}100%{transform:scale(1)}}\n";
-    h += ".meta.anim-in .pill{animation:pill-pop .4s cubic-bezier(.22,1.2,.36,1) .1s}\n";
+    h += "@keyframes pill-pop{0%{transform:scale(.5)}70%{transform:scale(1.35)}100%{transform:scale(1)}}\n";
+    h += "@keyframes pct-pop{0%{transform:scale(.85)}70%{transform:scale(1.15)}100%{transform:scale(1)}}\n";
+    h += ".meta.anim-in .pill{animation:pill-pop .45s cubic-bezier(.22,1.2,.36,1) .08s}\n";
     h += ".meta.anim-in .pct{animation:pct-pop .5s cubic-bezier(.34,1.56,.64,1)}\n";
     // EP 行
     h += ".eprow{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:16px}\n";
@@ -17134,13 +17134,15 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "    list.insertBefore(g,list.firstChild);\n";
     h += "    g.classList.add('in');\n";
     h += "  }\n";
-    // 恢复/跳过终态：除等级标签与百分位的放大动画外，禁用一切过渡，直接落位
-    // （刷新恢复时页面只展示 pill/pct 放大，无下方滑入/淡入；徽章已在上面以无过渡方式铺满）
+    // 恢复/跳过终态：h2/sub/actions/life 禁用过渡直接落位；
+    // meta 行延迟 ~150ms 到 iframe 首帧渲染就绪后再触发（finish 过早调用会让 CSS 动画冻结在
+    // 起始帧）：容器直接终态（transition none 防冻结），pill/pct 重启放大动画（scale .5/.85 弹入
+    // 放大，峰值 1.35/1.15）——刷新恢复时只展示这两个放大。
     h += "  var h2=document.querySelector('.bd h2');if(h2){h2.style.transition='none';h2.classList.add('anim-in');}\n";
     h += "  if(sub){sub.style.transition='none';sub.classList.add('anim-in');}\n";
-    h += "  if(meta){meta.style.transition='none';meta.classList.add('anim-in');}\n";
     h += "  if(actions){actions.style.transition='none';actions.classList.add('anim-in');}\n";
     h += "  var lf=document.querySelector('.life');if(lf){lf.style.transition='none';lf.classList.add('anim-in');}\n";
+    h += "  setTimeout(function(){var mm=document.querySelector('.meta');if(!mm)return;mm.style.transition='none';mm.classList.add('anim-in');var pp=mm.querySelector('.pill'),cc=mm.querySelector('.pct');if(pp){pp.style.animation='none';void pp.offsetWidth;pp.style.animation='';}if(cc){cc.style.animation='none';void cc.offsetWidth;cc.style.animation='';}},150);\n";
     h += "  epValue=total;ep.textContent=total.toLocaleString('en-US')+' EP';\n";
     h += "  var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');\n";
     h += "  if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');\n";
