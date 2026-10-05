@@ -857,6 +857,16 @@ HOME = r"""<!doctype html>
           if (has) { miss = 0; return; }
           if (++miss >= 6) { clearInterval(guard); $("skip").style.display = "none"; }
         }, 500);
+        // 动画播放完成后自动隐藏"跳过动画"按钮（与官网一致：动画结束不再保留跳过入口）
+        var animWatch = setInterval(function () {
+          if (!f.isConnected) { clearInterval(animWatch); return; }
+          var done = false;
+          try {
+            var de = f.contentDocument && f.contentDocument.documentElement;
+            done = !!(de && de.getAttribute("data-rngdle-anim") === "done");
+          } catch (e) { done = false; }
+          if (done) { clearInterval(animWatch); $("skip").style.display = "none"; }
+        }, 300);
       })
       .catch(function (e) { alert("生成失败：" + e.message + "（请确认 rngdle_score.exe 与本服务器在同一目录）"); })
       .then(function () {
