@@ -4,6 +4,12 @@
   "use strict";
 
   const SERVER = "http://127.0.0.1:8765";
+  // 结果持久化：把本地结果页 HTML 存进 sessionStorage。
+  // 刷新（reload）官网后据此恢复结果并直接落到终态（不重播动画）；
+  // 只有点击右上角 × 才清除它，回到官网首页进行下一次抽取。
+  const SKEY = "rngdle_local_roll";
+  const storeResult = (html) => { try { sessionStorage.setItem(SKEY, html); } catch (e) {} };
+  const clearResult = () => { try { sessionStorage.removeItem(SKEY); } catch (e) {} };
   let busy = false;
 
   // 只有点中 GENERATE 按钮（按钮自身或其内部元素）才算数。
@@ -36,7 +42,10 @@
   //      documentElement 的节点属于「多出来的子节点」，官网任何一次重渲染都可能把它清掉
   //      ——所以下面有一个保活看护：节点被移除就补回（move 节点不会让 iframe 重新加载）。
   //   2) iframe 的 load 可能早于结果页脚本就绪（about:blank 的 load），不能一次探测不到就删按钮。
-  function showLocalResult(html) {
+  function showLocalResult(html, opts) {
+    opts = opts || {};
+    // 恢复场景（recover=true）：结果页就绪后立即跳过动画直接落终态，且不显示跳过按钮
+    const recover = !!opts.recover;
     const old = document.getElementById("rngdle-local-frame");
     if (old) old.remove();
     const oldClose = document.getElementById("rngdle-local-close");
@@ -102,8 +111,11 @@
     let skipped = false;  // 已点过跳过：不再补回按钮
     let miss = 0;         // 连续探测不到跳过标记的次数（判定静态结果页）
 
+    if (recover) skipped = true; // 恢复场景直接跳终态，不再显示/补回跳过按钮
+
     c.onclick = () => {
       closed = true;
+      clearResult(); // 只有 × 才清除保存的结果，回官网首页可再抽
       f.remove();
       c.remove();
       s.remove();
@@ -118,6 +130,17 @@
     document.documentElement.appendChild(c);
     document.documentElement.appendChild(s);
     f.srcdoc = html;
+
+    // 恢复场景：等结果页脚本就绪（data-rngdle-skip=1）后立即派发 rngdle-skip 事件跳过动画。
+    // 无论原动画播到哪一步，刷新后都直接展示终态结果（不重播）。
+    if (recover) {
+      const t0 = Date.now();
+      const poll = setInterval(() => {
+        if (closed) { clearInterval(poll); return; }
+        if (hasSkip() && !animDone()) requestSkip();
+        if (animDone() || Date.now() - t0 > 8000) clearInterval(poll);
+      }, 200);
+    }
 
     // 保活看护：官网重渲染清掉节点就补回；跳过按钮要等确认结果页没有跳过能力才隐藏
     const keep = setInterval(() => {
@@ -186,7 +209,9 @@
       e.stopPropagation();
       e.stopImmediatePropagation();
       try {
-        showLocalResult(await fetchResult());
+        const html = await fetchResult();
+        storeResult(html); // 保存本次结果，供刷新后恢复
+        showLocalResult(html);
       } catch (err) {
         showNotice("无法连接本地服务器（" + err.message + "）。请先运行 rngdle_server.py（端口 8765）；" +
                    "若控制台提示本地网络访问被拦截，请在地址栏允许 rngdle.com 访问本地网络后重试。");
@@ -196,4 +221,11 @@
     },
     true
   );
+
+  // 刷新（reload）后恢复上一次结果：直接展示终态（不重播动画）。
+  // 无论动画当时播到哪一步，刷新后都落到最终结果；只有 × 才清除并回官网。
+  try {
+    const saved = sessionStorage.getItem(SKEY);
+    if (saved) showLocalResult(saved, { recover: true });
+  } catch (e) {}
 })();

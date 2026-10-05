@@ -837,6 +837,8 @@ HOME = r"""<!doctype html>
         return r.text();
       })
       .then(function (html) {
+        // 保存本次结果：刷新（reload）后据此恢复，且刷新即直接落到终态（不重播动画）
+        try { sessionStorage.setItem("rngdle_local_roll", html); } catch (e) {}
         var old = $("res");
         if (old) old.remove();
         var f = document.createElement("iframe");
@@ -874,6 +876,8 @@ HOME = r"""<!doctype html>
   });
 
   $("close").addEventListener("click", function () {
+    // 只有点击 × 才清除保存的结果并回到配置页：动画播完后的刷新不会清掉它
+    try { sessionStorage.removeItem("rngdle_local_roll"); } catch (e) {}
     var f = $("res");
     if (f) f.remove();
     this.style.display = "none";
@@ -890,6 +894,34 @@ HOME = r"""<!doctype html>
     if ($("f-idx").style.display !== "none") indexStatus();
   }, 3000);
   load();
+  // 刷新（reload）后恢复上一次抽取的结果：
+  //   动画尚未播完 → 结果页重载后立即跳过动画，直接展示终态；
+  //   动画已经播完 → 同样直接展示终态（不再重播）。
+  // 只有点击右上角 × 才清除 sessionStorage，回到配置页进行下一次抽取。
+  try {
+    var saved = sessionStorage.getItem("rngdle_local_roll");
+    if (saved) {
+      var old = $("res");
+      if (old) old.remove();
+      var f = document.createElement("iframe");
+      f.id = "res";
+      document.body.appendChild(f);
+      f.srcdoc = saved;
+      $("close").style.display = "block";
+      $("skip").style.display = "none";   // 恢复场景不重播动画，无需跳过按钮
+      var t0 = Date.now();
+      var poll = setInterval(function () {
+        try {
+          if (typeof f.contentWindow.rngdleSkipAnim === "function") {
+            f.contentWindow.rngdleSkipAnim();
+            clearInterval(poll);
+            return;
+          }
+        } catch (e) {}
+        if (Date.now() - t0 > 8000) clearInterval(poll);
+      }, 200);
+    }
+  } catch (e) {}
 })();
 </script>
 </body>
