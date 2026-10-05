@@ -16719,12 +16719,14 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".pct-emerald{color:#10b981}\n";
     h += ".pct-orange{color:#f97316}\n";
     h += ".pct-red{color:#ef4444}\n";
-    // 等级标签 + 百分位的展示放大效果（官网 gsap：pill scale .5→1、0.4s delay .1s back.out(3)，
-    // 峰值明显回弹；pct 随 meta 容器 scale .9→1 外再给轻微独立弹入）。挂在 .meta.anim-in 下：
-    // 自然动画的 rarity 阶段与刷新恢复（finish 补 anim-in）都会触发，刷新已展示结果时只有这两个放大。
-    h += "@keyframes pill-pop{0%{transform:scale(.5)}70%{transform:scale(1.35)}100%{transform:scale(1)}}\n";
-    h += "@keyframes pct-pop{0%{transform:scale(.85)}70%{transform:scale(1.15)}100%{transform:scale(1)}}\n";
-    h += ".meta.anim-in .pill{animation:pill-pop .45s cubic-bezier(.22,1.2,.36,1) .08s}\n";
+    // 等级标签 + 百分位的展示放大效果（官网 gsap verbatim）：
+    //   pill  scale .5→1，0.4s delay .1s，ease back.out(3) —— back.out(3) 峰值 ease=1.25，
+    //   作用于差值 .5 得实际峰值 scale≈1.125（不是大幅 overshoot）；
+    //   pct  官网无独立动画（随 meta 容器 scale .9→1，back.out(1.7) 峰值≈1.01，几乎不超 1），
+    //   为恢复场景可独立触发，给轻微 pct-pop（.9→1，峰值 1.03）。
+    h += "@keyframes pill-pop{0%{transform:scale(.5)}50%{transform:scale(1.12)}100%{transform:scale(1)}}\n";
+    h += "@keyframes pct-pop{0%{transform:scale(.9)}50%{transform:scale(1.03)}100%{transform:scale(1)}}\n";
+    h += ".meta.anim-in .pill{animation:pill-pop .4s cubic-bezier(.22,1.2,.36,1) .1s}\n";
     h += ".meta.anim-in .pct{animation:pct-pop .5s cubic-bezier(.34,1.56,.64,1)}\n";
     // EP 行
     h += ".eprow{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:16px}\n";
