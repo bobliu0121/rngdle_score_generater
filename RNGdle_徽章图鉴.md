@@ -1,518 +1,518 @@
 # RNGdle 徽章与家族图鉴
 
-> 数据来源：rngdle.com 官方徽章定义 + `rngdle_score.cpp`（徽章得分与判定），等级按 EP 阈值映射（<1,000 普通 / <10,000 稀有 / <100,000 罕见 / <1,000,000 史诗 / <10,000,000 异常 / ≥10,000,000 神话）。
+> 数据来源：rngdle.com 官方徽章定义（id/名称/图标/描述）+ `rngdle_score.cpp` 得分表。等级按 EP 阈值映射：COMMON(<1,000) / UNCOMMON(<10,000) / RARE(<100,000) / EPIC(<1,000,000) / ANOMALY(<10,000,000) / MYTHIC(≥10,000,000)。
 
-共 **233** 枚徽章、**39** 个家族。按家族分组，家族内按 EP 从高到低排列。
-
-## 意义 家族（MEANING）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🌌 | Universal Answer | 终极答案 | 神话 | 100,000,100 | 数字恰为 42 |
-| 🌌 | Deeper Meaning | 深层意义 | 史诗 | 334,448 | 数字包含 42（深层意义） |
-
-## 个位数 家族（SINGLE_DIGIT）
-
-共 11 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 8️⃣ | Eight | 数字八 | 神话 | 100,000,100 | 数字为 8 |
-| 5️⃣ | Five | 数字五 | 神话 | 100,000,100 | 数字为 5 |
-| 4️⃣ | Four | 数字四 | 神话 | 100,000,100 | 数字为 4 |
-| 9️⃣ | Nine | 数字九 | 神话 | 100,000,100 | 数字为 9 |
-| 1️⃣ | One | 数字一 | 神话 | 100,000,100 | 数字为 1 |
-| 7️⃣ | Seven | 数字七 | 神话 | 100,000,100 | 数字为 7 |
-| 6️⃣ | Six | 数字六 | 神话 | 100,000,100 | 数字为 6 |
-| 3️⃣ | Three | 数字三 | 神话 | 100,000,100 | 数字为 3 |
-| 2️⃣ | Two | 数字二 | 神话 | 100,000,100 | 数字为 2 |
-| 0️⃣ | Zero | 数字零 | 神话 | 100,000,100 | 数字为 0（个位数字） |
-| ☝️ | Single Digit | 个位数 | 神话 | 10,000,010 | 数字为单个数字 |
-
-## BOOB 家族（BOOB）
-
-共 5 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 💎 | Exact 80085 | 精准80085 | 神话 | 100,000,100 | 数字恰为 80085（BOOB 家族） |
-| 🍈 | Exact Boob | 精准BOOB | 神话 | 50,000,050 | 数字恰为 8008（BOOB 家族） |
-| 🔠 | 58008 | 58008 | 异常 | 5,000,005 | 数字包含 58008（倒看 BOOBS） |
-| 🅱️ | 80085 | 80085 | 异常 | 5,000,005 | 数字包含 80085（倒看 BOOBS） |
-| 🔢 | 8008 | 8008 | 史诗 | 333,334 | 数字包含 8008（倒看 BOOB） |
-
-## 恶魔 家族（DEVIL）
-
-共 3 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 😈 | Exact Devil | 精准恶魔 | 神话 | 100,000,100 | 数字恰为 666 |
-| 🔱 | Infernal | 地狱恶魔 | 神话 | 100,000,100 | 数字恰为 666666 |
-| 😈 | Devil | 恶魔 | 罕见 | 27,027 | 数字包含 666（恶魔） |
-
-## 八六 家族（EIGHTY_SIX）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🍽️ | Exact Eighty-Six | 精准八六 | 神话 | 100,000,100 | 数字恰为 8675309（八六） |
-| 🍽️ | Eighty-Six | 八六 | 稀有 | 2,024 | 数字包含 86 |
-
-## 六七 家族（SIXTY_SEVEN）
-
-共 4 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🫠 | Brainrot | 脑腐 | 神话 | 100,000,100 | 数字恰为 676767（脑腐梗） |
-| 🫠 | Exact Six-Seven | 精准六七 | 神话 | 100,000,100 | 数字恰为 676767（六七） |
-| 🫠 | 6767 | 6767 | 史诗 | 334,448 | 数字包含 6767 |
-| 🫠 | Six-Seven | 六七 | 稀有 | 2,024 | 数字包含 67 |
-
-## 错误 家族（ERROR）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🚫 | Not Found | 精准错误 | 神话 | 100,000,100 | 数字恰为 404（错误） |
-| 🚫 | Error 404 | 错误404 | 罕见 | 25,132 | 数字包含 404（错误） |
-
-## 植物学家 家族（BOTANIST）
-
-共 5 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🌿 | Exact Botanist | 精准植物学家 | 神话 | 100,000,100 | 数字恰为 420（植物学家家族） |
-| 🌿 | Hotbox | 闷热箱 | 神话 | 100,000,100 | 数字恰为 42069 |
-| 🌌 | Exact Meaning | 精准意义 | 神话 | 100,000,100 | 数字恰为 42（生命的意义） |
-| 🌿 | Botanist | 植物学家 | 罕见 | 25,006 | 数字包含 420（植物学家梗） |
-| 🌌 | Meaning of Life | 生命的意义 | 稀有 | 2,024 | 数字恰为 42（生命的意义） |
+共 **233** 枚徽章、**39** 个家族。按家族分组，族内按 EP 从高到低。
 
 ## 日历 家族（CALENDAR）
 
 共 4 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 📅 | Exact Calendar | 精准日历 | 神话 | 100,000,100 | 数字恰为 314159（日历） |
-| 📅 | Groundhog Day | 土拨鼠之日 | 神话 | 100,000,100 | 数字恰为 203（土拨鼠日 2/03） |
-| ♾️ | Always | 永远 | 神话 | 50,000,050 | 数字恰为 366（日历） |
-| 📅 | Calendar | 日历 | 罕见 | 25,006 | 数字可构成日期 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| CALENDAR_EXACT | 📅 | Exact Calendar | 精准日历 | MYTHIC | 100,000,100 | Exactly "365". | 数字恰为 365 |
+| GROUNDHOG_DAY | 📅 | Groundhog Day | 土拨鼠之日 | MYTHIC | 100,000,100 | Exactly "365365". | 数字恰为 365365 |
+| ALWAYS | ♾️ | Always | 永远 | MYTHIC | 50,000,050 | Exactly "247365" or "365247" (24/7, 365). | 数字恰为 247365 或 365247 |
+| CALENDAR | 📅 | Calendar | 日历 | RARE | 25,006 | Contains "365" (days in a year). | 包含 365 |
 
-## 紧急 家族（EMERGENCY）
-
-共 3 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🚑 | Exact Emergency | 精准紧急 | 神话 | 100,000,100 | 数字恰为 911（紧急） |
-| 🚑 | Mayday | 求救信号 | 神话 | 100,000,100 | 数字恰为 911911 |
-| 🚑 | Emergency | 紧急 | 罕见 | 25,006 | 数字包含 911（紧急） |
-
-## 地狱 家族（HELL）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 👹 | Exact Hell | 精准地狱 | 神话 | 100,000,100 | 数字恰为 666（地狱） |
-| 🔥 | Hell | 地狱 | 史诗 | 333,334 | 数字包含 666（地狱） |
-
-## 老大哥 家族（BIG_BROTHER）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 👁️ | Orwellian | 精准老大哥 | 神话 | 100,000,100 | 数字恰为 1984（老大哥） |
-| 👁️ | Big Brother | 老大哥 | 史诗 | 333,334 | 数字包含 1984（老大哥） |
-
-## 头奖 家族（JACKPOT）
+## 植物学家 家族（BOTANIST）
 
 共 5 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 💰 | Exact Jackpot | 精准头奖 | 神话 | 100,000,100 | 数字恰为 100000000（一亿整） |
-| 🏦 | Jackpot Six | 六连头奖 | 神话 | 100,000,100 | 数字恰为 100000（十万整） |
-| 💰💰💰 | Jackpot Five | 五位头奖 | 异常 | 5,263,163 | 数字恰为 10000（五位头奖） |
-| 💰💰 | Jackpot Four | 四位头奖 | 史诗 | 357,143 | 数字恰为 1000（四位头奖） |
-| 💰 | Jackpot | 头奖 | 罕见 | 27,027 | 数字恰为 100 的倍数（头奖） |
-
-## 方向 家族（ORIENTATION）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🧭 | Exact Orientation | 精准方向 | 神话 | 100,000,100 | 数字恰为 123456789 |
-| 🧭 | Orientation | 方向 | 罕见 | 25,132 | 数字为方向（如上下颠倒仍可读） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| BOTANIST_EXACT | 🌿 | Exact Botanist | 精准植物学家 | MYTHIC | 100,000,100 | Exactly "420". | 数字恰为 420 |
+| HOTBOX | 🌿 | Hotbox | 闷热箱 | MYTHIC | 100,000,100 | Exactly "420420". | 数字恰为 420420 |
+| MEANING_EXACT | 🌌 | Exact Meaning | 精准意义 | MYTHIC | 100,000,100 | Exactly "42". | 数字恰为 42 |
+| BOTANIST | 🌿 | Botanist | 植物学家 | RARE | 25,006 | Contains "420". | 包含 420 |
+| MEANING | 🌌 | Meaning of Life | 生命的意义 | UNCOMMON | 2,024 | Contains "42". | 包含 42 |
 
 ## 黑客语 家族（LEET）
 
 共 2 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 💻 | Exact Leet | 精准黑客语 | 神话 | 100,000,100 | 数字恰为 1337（黑客语） |
-| 💻 | Leet | 黑客语 | 史诗 | 333,334 | 数字包含 1337（黑客语） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| LEET_EXACT | 💻 | Exact Leet | 精准黑客语 | MYTHIC | 100,000,100 | Exactly "1337". | 数字恰为 1337 |
+| LEET | 💻 | Leet | 黑客语 | EPIC | 333,334 | Contains "1337". | 包含 1337 |
+
+## 老大哥 家族（BIG_BROTHER）
+
+共 2 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| BIG_BROTHER_EXACT | 👁️ | Orwellian | 精准老大哥 | MYTHIC | 100,000,100 | Exactly "1984". | 数字恰为 1984 |
+| BIG_BROTHER | 👁️ | Big Brother | 老大哥 | EPIC | 333,334 | Contains "1984". | 包含 1984 |
+
+## BOOB 家族（BOOB）
+
+共 5 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| EXACT_BOOB_80085 | 💎 | Exact 80085 | 精准80085 | MYTHIC | 100,000,100 | Exactly "80085". | 数字恰为 80085 |
+| EXACT_BOOB | 🍈 | Exact Boob | 精准BOOB | MYTHIC | 50,000,050 | Exactly "8008" or "58008". | 数字恰为 8008 或 58008 |
+| BOOB_58008 | 🔠 | 58008 | 58008 | ANOMALY | 5,000,005 | Contains "58008" (spells BOOBS upside-down). | 包含 58008 |
+| BOOB_80085 | 🅱️ | 80085 | 80085 | ANOMALY | 5,000,005 | Contains "80085" (spells BOOBS). | 包含 80085 |
+| BOOB_8008 | 🔢 | 8008 | 8008 | EPIC | 333,334 | Contains "8008" (spells BOOB upside-down). | 包含 8008 |
+
+## 六七 家族（SIXTY_SEVEN）
+
+共 4 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| BRAINROT | 🫠 | Brainrot | 脑腐 | MYTHIC | 100,000,100 | Exactly "676767". | 数字恰为 676767 |
+| SIXTY_SEVEN_EXACT | 🫠 | Exact Six-Seven | 精准六七 | MYTHIC | 100,000,100 | Exactly "67". | 数字恰为 67 |
+| SIXTY_SEVEN_DOUBLE | 🫠 | 6767 | 6767 | EPIC | 334,448 | Contains "6767". | 包含 6767 |
+| SIXTY_SEVEN | 🫠 | Six-Seven | 六七 | UNCOMMON | 2,024 | Contains "67". | 包含 67 |
+
+## 个位数 家族（SINGLE_DIGIT）
+
+共 12 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| DIGIT_EIGHT | 8️⃣ | Eight | 数字八 | MYTHIC | 100,000,100 | The number eight. | 数字为 8 |
+| DIGIT_FIVE | 5️⃣ | Five | 数字五 | MYTHIC | 100,000,100 | The number five. | 数字为 5 |
+| DIGIT_FOUR | 4️⃣ | Four | 数字四 | MYTHIC | 100,000,100 | The number four. | 数字为 4 |
+| DIGIT_NINE | 9️⃣ | Nine | 数字九 | MYTHIC | 100,000,100 | The number nine. | 数字为 9 |
+| DIGIT_ONE | 1️⃣ | One | 数字一 | MYTHIC | 100,000,100 | The number one. | 数字为 1 |
+| DIGIT_SEVEN | 7️⃣ | Seven | 数字七 | MYTHIC | 100,000,100 | The number seven. | 数字为 7 |
+| DIGIT_SIX | 6️⃣ | Six | 数字六 | MYTHIC | 100,000,100 | The number six. | 数字为 6 |
+| DIGIT_THREE | 3️⃣ | Three | 数字三 | MYTHIC | 100,000,100 | The number three. | 数字为 3 |
+| DIGIT_TWO | 2️⃣ | Two | 数字二 | MYTHIC | 100,000,100 | The number two. | 数字为 2 |
+| DIGIT_ZERO | 0️⃣ | Zero | 数字零 | MYTHIC | 100,000,100 | The number zero. | 数字为 0 |
+| ONE_DIGIT | ☝️ | Single Digit | 个位数 | MYTHIC | 10,000,010 | Has exactly one digit. | 数字恰为一位数 |
+| GAP_ONE | ↕️ | Gap One | 间隔一 | COMMON | 529 | The first and last digits differ by exactly 1. | 首尾数字相差 1 |
+
+## 终极梗 家族（ULTIMEME）
+
+共 3 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| FOOTBALL_17776 | 🏈 | 17776 | 橄榄球17776 | MYTHIC | 100,000,100 | Exactly "17776". | 数字恰为 17776 |
+| ULTIMEME_EXACT | 😂 | Funny Number | 精准终极梗 | MYTHIC | 50,000,050 | Exactly "69420" or "42069". | 数字恰为 69420 或 42069 |
+| ULTIMEME | 😂 | Funny Numbers | 终极梗 | ANOMALY | 1,666,668 | Contains both "69" and "420". | 同时包含 69 与 420 |
+
+## 地狱 家族（HELL）
+
+共 2 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| EXACT_HELL | 👹 | Exact Hell | 精准地狱 | MYTHIC | 100,000,100 | Exactly "7734". | 数字恰为 7734 |
+| HELL | 🔥 | Hell | 地狱 | EPIC | 333,334 | Contains "7734" (spells HELL upside-down). | 包含 7734 |
 
 ## NICE 家族（NICE）
 
 共 5 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 😏 | Exact Nice | 精准NICE | 神话 | 100,000,100 | 数字恰为 420（NICE 梗数） |
-| 😏 | Very Very Nice | 超级NICE | 神话 | 100,000,100 | 数字恰为 696969 |
-| 🥵 | Very Nice | 很NICE | 史诗 | 334,448 | 数字恰为 420 的变体 |
-| 😏 | Nice | NICE | 稀有 | 2,024 | 数字恰为 69（NICE 梗） |
-| 🕳️ | Void | 虚空 | 普通 | 167 | 不含数字 0 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| NICE_EXACT | 😏 | Exact Nice | 精准NICE | MYTHIC | 100,000,100 | Exactly "69". | 数字恰为 69 |
+| VERY_VERY_NICE | 😏 | Very Very Nice | 超级NICE | MYTHIC | 100,000,100 | Exactly "696969". | 数字恰为 696969 |
+| VERY_NICE | 🥵 | Very Nice | 很NICE | EPIC | 334,448 | Contains "6969". | 包含 6969 |
+| NICE | 😏 | Nice | NICE | UNCOMMON | 2,024 | Contains the number 69. | 包含 69 |
+| VOID | 🕳️ | Void | 虚空 | COMMON | 167 | Contains no zeros. | 不含数字 0 |
 
-## 终极梗 家族（ULTIMEME）
+## 恶魔 家族（DEVIL）
+
+共 3 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| DEVIL_EXACT | 😈 | Exact Devil | 精准恶魔 | MYTHIC | 100,000,100 | Exactly "666". | 数字恰为 666 |
+| INFERNAL | 🔱 | Infernal | 地狱恶魔 | MYTHIC | 100,000,100 | Exactly "666666". | 数字恰为 666666 |
+| DEVIL | 😈 | Devil | 恶魔 | RARE | 27,027 | Contains "666". | 包含 666 |
+
+## 头奖 家族（JACKPOT）
+
+共 6 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| JACKPOT_EXACT | 💰 | Exact Jackpot | 精准头奖 | MYTHIC | 100,000,100 | Exactly "777". | 数字恰为 777 |
+| JACKPOT_SIX | 🏦 | Jackpot Six | 六连头奖 | MYTHIC | 100,000,100 | Contains six 7s in a row. | 包含 6 个连续 7（777777） |
+| JACKPOT_FIVE | 💰💰💰 | Jackpot Five | 五位头奖 | ANOMALY | 5,263,163 | Contains five 7s in a row. | 包含 5 个连续 7（77777） |
+| JACKPOT_FOUR | 💰💰 | Jackpot Four | 四位头奖 | EPIC | 357,143 | Contains four 7s in a row. | 包含 4 个连续 7（7777） |
+| JACKPOT | 💰 | Jackpot | 头奖 | RARE | 27,027 | Contains "777". | 包含 3 个连续 7（777） |
+| LUCKY_7 | 7️⃣ | Lucky Seven | 幸运七 | COMMON | 213 | Contains the number 7. | 包含数字 7 |
+
+## 紧急 家族（EMERGENCY）
+
+共 3 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| EMERGENCY_EXACT | 🚑 | Exact Emergency | 精准紧急 | MYTHIC | 100,000,100 | Exactly "911". | 数字恰为 911 |
+| MAYDAY | 🚑 | Mayday | 求救信号 | MYTHIC | 100,000,100 | Exactly "911911". | 数字恰为 911911 |
+| EMERGENCY | 🚑 | Emergency | 紧急 | RARE | 25,006 | Contains "911". | 包含 911 |
+
+## 方向 家族（ORIENTATION）
 
 共 2 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 😂 | Funny Number | 精准终极梗 | 神话 | 50,000,050 | 数字恰为 42069（终极梗） |
-| 😂 | Funny Numbers | 终极梗 | 异常 | 1,666,668 | 数字包含 420 和 69（梗数） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| ORIENTATION_EXACT | 🧭 | Exact Orientation | 精准方向 | MYTHIC | 100,000,100 | Exactly "101". | 数字恰为 101 |
+| ORIENTATION | 🧭 | Orientation | 方向 | RARE | 25,132 | Contains "101" (intro course number). | 包含 101 |
+
+## 意义 家族（MEANING）
+
+共 2 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| UNIVERSAL_ANSWER | 🌌 | Universal Answer | 终极答案 | MYTHIC | 100,000,100 | Exactly "424242". | 数字恰为 424242 |
+| DEEPER_MEANING | 🌌 | Deeper Meaning | 深层意义 | EPIC | 334,448 | Contains "4242". | 包含 4242 |
+
+## 八六 家族（EIGHTY_SIX）
+
+共 2 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| EIGHTY_SIX_EXACT | 🍽️ | Exact Eighty-Six | 精准八六 | MYTHIC | 100,000,100 | Exactly "86". | 数字恰为 86 |
+| EIGHTY_SIX | 🍽️ | Eighty-Six | 八六 | UNCOMMON | 2,024 | Contains "86" (restaurant slang for "out of"). | 包含 86 |
+
+## 错误 家族（ERROR）
+
+共 2 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| ERROR_EXACT | 🚫 | Not Found | 精准错误 | MYTHIC | 100,000,100 | Exactly "404". | 数字恰为 404 |
+| ERROR | 🚫 | Error 404 | 错误404 | RARE | 25,132 | Contains "404". | 包含 404 |
 
 ## 幂 家族（POWER）
 
-共 14 枚徽章。
+共 15 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🌑 | 19th Power | 19次幂 | 神话 | 33,333,367 | 可写成 19 次幂 |
-| 🧙 | 17th Power | 17次幂 | 神话 | 33,333,367 | 可写成 17 次幂 |
-| 💀 | 13th Power | 13次幂 | 神话 | 33,333,367 | 可写成 13 次幂 |
-| 🕚 | 11th Power | 11次幂 | 神话 | 25,000,025 | 可写成 11 次幂 |
-| 🔟 | 10th Power | 10次幂 | 神话 | 25,000,025 | 可写成 10 次幂 |
-| ☁️ | 9th Power | 9次幂 | 神话 | 20,000,020 | 可写成 9 次幂 |
-| 🎱 | 8th Power | 8次幂 | 神话 | 16,666,683 | 可写成 8 次幂 |
-| 🐍 | Ouroboros | 衔尾蛇 | 神话 | 14,285,729 | 数字包含 142857（循环数） |
-| 🌈 | 7th Power | 7次幂 | 神话 | 12,500,013 | 可写成 7 次幂 |
-| 🎲 | 6th Power | 6次幂 | 异常 | 9,090,918 | 可写成 6 次幂 |
-| 🖐️ | 5th Power | 5次幂 | 异常 | 6,250,006 | 可写成 5 次幂 |
-| 📦 | 4th Power | 4次幂 | 异常 | 3,125,003 | 可写成 4 次幂 |
-| 🧊 | 3rd Power | 3次幂 | 史诗 | 990,100 | 可写成 3 次幂 |
-| 🟦 | 2nd Power | 2次幂 | 罕见 | 99,900 | 可写成 2 次幂（完全平方数） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| NINETEENTH_POWER | 🌑 | 19th Power | 19次幂 | MYTHIC | 33,333,367 | A perfect nineteenth power (n¹⁹). | 可写成 19 次幂 |
+| SEVENTEENTH_POWER | 🧙 | 17th Power | 17次幂 | MYTHIC | 33,333,367 | A perfect seventeenth power (n¹⁷). | 可写成 17 次幂 |
+| THIRTEENTH_POWER | 💀 | 13th Power | 13次幂 | MYTHIC | 33,333,367 | A perfect thirteenth power (n¹³). | 可写成 13 次幂 |
+| ELEVENTH_POWER | 🕚 | 11th Power | 11次幂 | MYTHIC | 25,000,025 | A perfect eleventh power (n¹¹). | 可写成 11 次幂 |
+| TENTH_POWER | 🔟 | 10th Power | 10次幂 | MYTHIC | 25,000,025 | A perfect tenth power (n¹⁰). | 可写成 10 次幂 |
+| NINTH_POWER | ☁️ | 9th Power | 9次幂 | MYTHIC | 20,000,020 | A perfect ninth power (n⁹). | 可写成 9 次幂 |
+| EIGHTH_POWER | 🎱 | 8th Power | 8次幂 | MYTHIC | 16,666,683 | A perfect eighth power (n⁸). | 可写成 8 次幂 |
+| OUROBOROS | 🐍 | Ouroboros | 衔尾蛇 | MYTHIC | 14,285,729 | A number raised to itself: nⁿ (1¹, 2², ... 7⁷). | 数字为 n 的 n 次方：1/4/27/256/3125/46656/823543 |
+| POWER_OF_SEVEN | 7️⃣ | Power of Seven | 七的幂 | MYTHIC | 12,500,013 | A power of 7 (7ⁿ). | 数字为 7 的幂 |
+| SEVENTH_POWER | 🌈 | 7th Power | 7次幂 | MYTHIC | 12,500,013 | A perfect seventh power (n⁷). | 可写成 7 次幂 |
+| SIXTH_POWER | 🎲 | 6th Power | 6次幂 | ANOMALY | 9,090,918 | A perfect sixth power (n⁶). | 可写成 6 次幂 |
+| FIFTH_POWER | 🖐️ | 5th Power | 5次幂 | ANOMALY | 6,250,006 | A perfect fifth power (n⁵). | 可写成 5 次幂 |
+| FOURTH_POWER | 📦 | 4th Power | 4次幂 | ANOMALY | 3,125,003 | A perfect fourth power (n⁴). | 可写成 4 次幂 |
+| CUBE | 🧊 | 3rd Power | 3次幂 | EPIC | 990,100 | A perfect cube (n³). | 可写成 3 次幂 |
+| SQUARE | 🟦 | 2nd Power | 2次幂 | RARE | 99,900 | A perfect square (n²). | 可写成 2 次幂（完全平方数） |
 
 ## 陶数 家族（TAU）
 
 共 3 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🌀 | Tau | 陶数 | 神话 | 33,333,367 | 数字包含圆周率 tau 的前 6 位 628318 |
-| 🌀 | Tau Slice (5) | 陶数切片(5) | 异常 | 5,000,005 | 包含 tau 前 5 位 62831 |
-| 🌀 | Tau Slice (4) | 陶数切片(4) | 史诗 | 333,334 | 包含 tau 前 4 位 6283 |
-
-## 圆周率 家族（PI）
-
-共 4 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🥧 | Pi | 圆周率 | 神话 | 25,000,025 | 数字包含圆周率 π 的前 6 位 314159 |
-| 🥧 | Pi Slice (5) | 圆周率切片(5) | 异常 | 5,000,005 | 包含圆周率 π 前 5 位 31415 |
-| 🥧 | Pi Slice (4) | 圆周率切片(4) | 史诗 | 333,334 | 包含圆周率 π 前 4 位 3141 |
-| 🥧 | Pi Slice (3) | 圆周率切片(3) | 罕见 | 25,006 | 包含圆周率 π 前 3 位 314 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| TAU | 🌀 | Tau | 陶数 | MYTHIC | 33,333,367 | Exactly τ (6283, 62831, or 628318). | 数字恰为 6283 / 62831 / 628318 |
+| TAU_SLICE_5 | 🌀 | Tau Slice (5) | 陶数切片(5) | ANOMALY | 5,000,005 | Contains "62831". | 包含 62831 |
+| TAU_SLICE_4 | 🌀 | Tau Slice (4) | 陶数切片(4) | EPIC | 333,334 | Contains "6283". | 包含 6283 |
 
 ## 欧拉数 家族（E）
 
 共 4 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 📈 | Euler's Number | 欧拉数 | 神话 | 25,000,025 | 数字包含欧拉数 e 的前 6 位 271828 |
-| 📈 | E Slice (5) | 欧拉数切片(5) | 异常 | 5,000,005 | 包含欧拉数 e 前 5 位 27182 |
-| 📈 | E Slice (4) | 欧拉数切片(4) | 史诗 | 333,334 | 包含欧拉数 e 前 4 位 2718 |
-| 📈 | E Slice (3) | 欧拉数切片(3) | 罕见 | 25,006 | 包含欧拉数 e 前 3 位 271 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| E | 📈 | Euler's Number | 欧拉数 | MYTHIC | 25,000,025 | The number e (271, 2718, 27182, or 271828). | 数字恰为 271 / 2718 / 27182 / 271828 |
+| E_CONTAINS_5 | 📈 | E Slice (5) | 欧拉数切片(5) | ANOMALY | 5,000,005 | Contains "27182". | 包含 27182 |
+| E_CONTAINS_4 | 📈 | E Slice (4) | 欧拉数切片(4) | EPIC | 333,334 | Contains "2718". | 包含 2718 |
+| E_CONTAINS_3 | 📈 | E Slice (3) | 欧拉数切片(3) | RARE | 25,006 | Contains "271". | 包含 271 |
 
 ## 连续整数 家族（CONSECUTIVE）
 
 共 9 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| ⛓️ | 4 Consecutive Numbers | 4个连续整数 | 神话 | 25,000,025 | 数字恰为 4 个连续整数组成 |
-| 🔗 | 4 Consecutive Numbers (Contains) | 4个连续整数(包含) | 异常 | 2,631,582 | 包含 4 个连续整数 |
-| 🔀 | 4 Consecutive Numbers (Scrambled) | 4个连续整数(乱序) | 异常 | 2,272,730 | 数字由 4 个连续整数打乱组成 |
-| ⛓️ | 3 Consecutive Numbers | 3个连续整数 | 史诗 | 555,556 | 数字恰为 3 个连续整数 |
-| 🔀 | 3 Consecutive Numbers (Scrambled) | 3个连续整数(乱序) | 史诗 | 277,778 | 数字由 3 个连续整数打乱组成 |
-| 🔗 | 3 Consecutive Numbers (Contains) | 3个连续整数(包含) | 史诗 | 157,978 | 包含 3 个连续整数 |
-| 🔗 | 2 Consecutive Numbers | 2个连续整数 | 罕见 | 50,505 | 数字恰为 2 个连续整数 |
-| 🔗 | 2 Consecutive Numbers (Contains) | 2个连续整数(包含) | 稀有 | 1,659 | 包含 2 个连续整数 |
-| 🔗 | 2 Consecutive Numbers (Nearby) | 2个连续整数(邻近) | 稀有 | 1,575 | 包含 2 个非相邻的连续整数子串 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| CONSEC_QUAD_EXACT | ⛓️ | 4 Consecutive Numbers | 4个连续整数 | MYTHIC | 25,000,025 | The entire number splits into four consecutive integers in order. | 可拆成 4 个连续整数（有序） |
+| CONSEC_QUAD_CONTAINS | 🔗 | 4 Consecutive Numbers (Contains) | 4个连续整数(包含) | ANOMALY | 2,631,582 | Contains four adjacent consecutive integers. | 包含 4 个相邻连续整数 |
+| CONSEC_QUAD_SCRAMBLED | 🔀 | 4 Consecutive Numbers (Scrambled) | 4个连续整数(乱序) | ANOMALY | 2,272,730 | The entire number splits into four consecutive integers, but not in order. | 可拆成 4 个连续整数（乱序） |
+| CONSEC_TRIPLE_EXACT | ⛓️ | 3 Consecutive Numbers | 3个连续整数 | EPIC | 555,556 | The entire number splits into three consecutive integers in order. | 可拆成 3 个连续整数（有序） |
+| CONSEC_TRIPLE_SCRAMBLED | 🔀 | 3 Consecutive Numbers (Scrambled) | 3个连续整数(乱序) | EPIC | 277,778 | The entire number splits into three consecutive integers, but not in order. | 可拆成 3 个连续整数（乱序） |
+| CONSEC_TRIPLE_CONTAINS | 🔗 | 3 Consecutive Numbers (Contains) | 3个连续整数(包含) | EPIC | 157,978 | Contains three adjacent consecutive integers. | 包含 3 个相邻连续整数 |
+| CONSEC_PAIR_EXACT | 🔗 | 2 Consecutive Numbers | 2个连续整数 | RARE | 50,505 | The entire number splits into two consecutive integers. | 可拆成 2 个连续整数（有序） |
+| CONSEC_PAIR_ADJACENT | 🔗 | 2 Consecutive Numbers (Contains) | 2个连续整数(包含) | UNCOMMON | 1,659 | Contains two adjacent substrings that are consecutive integers. | 包含相邻的连续整数对 |
+| CONSEC_PAIR_NEARBY | 🔗 | 2 Consecutive Numbers (Nearby) | 2个连续整数(邻近) | UNCOMMON | 1,575 | Contains two non-adjacent substrings that are consecutive integers. | 包含非相邻的连续整数子串 |
+
+## 圆周率 家族（PI）
+
+共 5 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| PI | 🥧 | Pi | 圆周率 | MYTHIC | 25,000,025 | Exactly π (314, 3141, 31415, or 314159). | 数字恰为 314 / 3141 / 31415 / 314159 |
+| PI_CONTAINS_5 | 🥧 | Pi Slice (5) | 圆周率切片(5) | ANOMALY | 5,000,005 | Contains "31415". | 包含 31415 |
+| STROBOGRAMMATIC | 🙃 | Strobogrammatic | 旋转对称数 | EPIC | 502,513 | Looks the same when rotated 180 degrees. | 旋转 180 度仍相同（只含 0/1/6/8/9） |
+| PI_CONTAINS_4 | 🥧 | Pi Slice (4) | 圆周率切片(4) | EPIC | 333,334 | Contains "3141". | 包含 3141 |
+| PI_CONTAINS_3 | 🥧 | Pi Slice (3) | 圆周率切片(3) | RARE | 25,006 | Contains "314". | 包含 314 |
 
 ## 数列 家族（PROGRESSION）
 
 共 12 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🔢 | Sequence (6) | 序列(6) | 神话 | 11,111,122 | 包含 6 个数字的连续等差序列 |
-| 🌊 | Cascade | 级联 | 异常 | 3,333,337 | 所有数字相邻差为 +1（递增连续） |
-| 🚿 | Waterfall | 瀑布 | 异常 | 2,857,146 | 所有数字相邻差为 -1（递减连续） |
-| 📏 | Even Spacing | 等差间距 | 史诗 | 862,070 | 数字为等差序列（如 123 或 135） |
-| 🔊 | Crescendo | 渐强 | 史诗 | 208,334 | 数字为等比序列（渐强） |
-| 📐 | Even Spacing (Absolute) | 等差间距(绝对值) | 罕见 | 90,992 | 数字相邻差绝对值相等 |
-| 🐢 | Turtle | 乌龟 | 罕见 | 36,049 | 相邻数字差不超过 1 |
-| 🔢 | Sequence (4) | 序列(4) | 罕见 | 25,907 | 包含 4 个数字的连续等差序列 |
-| 🔀 | Scramble | 乱序 | 罕见 | 22,722 | 连续数字被打乱排列 |
-| 🎼 | Metronome | 节拍器 | 罕见 | 17,784 | 数字为等差序列（节拍器） |
-| 🔢 | Sequence (3) | 序列(3) | 稀有 | 1,716 | 包含 3 个数字的连续等差序列 |
-| 🧩 | Mini Scramble | 迷你乱序 | 普通 | 579 | 短乱序（相邻数字打乱） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| SEQUENCE_6 | 🔢 | Sequence (6) | 序列(6) | MYTHIC | 11,111,122 | Contains a sequence of 6 consecutive digits. | 包含 6 位连续数字 |
+| CASCADE | 🌊 | Cascade | 级联 | ANOMALY | 3,333,337 | Every digit increases by exactly 1 from the previous. | 相邻数字差恒为 +1 |
+| WATERFALL | 🚿 | Waterfall | 瀑布 | ANOMALY | 2,857,146 | Every digit decreases by exactly 1 from the previous. | 相邻数字差恒为 -1 |
+| EVEN_SPACING | 📏 | Even Spacing | 等差间距 | EPIC | 862,070 | All digits are evenly spaced in an arithmetic sequence. | 相邻数字差恒定（等差） |
+| GEOMETRIC | 🔊 | Crescendo | 渐强 | EPIC | 208,334 | Splits into three or more numbers with a constant ratio. | 可拆分为等比序列 |
+| EVEN_SPACING_ABS | 📐 | Even Spacing (Absolute) | 等差间距(绝对值) | RARE | 90,992 | All digits have the same absolute spacing (e.g., ±2 each time). | 相邻数字差绝对值恒定 |
+| TURTLE | 🐢 | Turtle | 乌龟 | RARE | 36,049 | All consecutive digits differ by at most 1. | 相邻数字差不超过 1 |
+| SEQUENCE_4 | 🔢 | Sequence (4) | 序列(4) | RARE | 25,907 | Contains a sequence of 4 consecutive digits. | 包含 4 位连续数字 |
+| SCRAMBLE | 🔀 | Scramble | 乱序 | RARE | 22,722 | All digits form a consecutive sequence when sorted. | 连续数字被打乱排列 |
+| ARITHMETIC | 🎼 | Metronome | 节拍器 | RARE | 17,784 | Splits into three or more numbers with a constant difference. | 可拆分为等差序列 |
+| SEQUENCE_3 | 🔢 | Sequence (3) | 序列(3) | UNCOMMON | 1,716 | Contains a sequence of 3 consecutive digits. | 包含 3 位连续数字 |
+| MINI_SCRAMBLE | 🧩 | Mini Scramble | 迷你乱序 | COMMON | 579 | Contains 3 or more adjacent digits that form a run when sorted. | 子串中的连续数字被打乱排列 |
+
+## 九结尾 家族（NINE_ENDING）
+
+共 5 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| QUINT_NINE | 🥳 | Quint Nine | 五个九 | MYTHIC | 10,000,010 | Ends in 99999. | 数字以 99999 结尾 |
+| QUAD_NINE | 🎊 | Quad Nine | 四个九 | ANOMALY | 1,000,001 | Ends in 9999. | 数字以 9999 结尾 |
+| TRIPLE_NINE | 🎉 | Triple Nine | 三个九 | EPIC | 100,000 | Ends in 999. | 数字以 999 结尾 |
+| DOUBLE_NINE | 🎈 | Double Nine | 两个九 | RARE | 10,000 | Ends in 99. | 数字以 99 结尾 |
+| SIX_DIGITS | 🐝 | Six Digits | 六位数 | COMMON | 111 | Has exactly six digits. | 数字恰为六位数 |
+
+## 虚空深渊 家族（VOID_DEPTH）
+
+共 18 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| DEEP_VOID_FIVE | ⚫ | Deep Void (5) | 虚空深渊(5) | MYTHIC | 10,000,010 | Contains "00000". | 包含 5 个连续零 |
+| EON | 🗿 | Eon | 永恒 | MYTHIC | 10,000,010 | Ends in five zeros. | 数字以 00000 结尾 |
+| SEMI_EON | 🦴 | Semi-Eon | 准永恒 | MYTHIC | 10,000,010 | Ends in "50000". | 数字以 50000 结尾 |
+| EPOCH | 🏛️ | Epoch | 纪元 | ANOMALY | 1,000,001 | Ends in four zeros. | 数字以 0000 结尾 |
+| SEMI_EPOCH | ⌛ | Semi-Epoch | 准纪元 | ANOMALY | 1,000,001 | Ends in "5000". | 数字以 5000 结尾 |
+| DEEP_VOID_FOUR | 🌌 | Deep Void (4) | 虚空深渊(4) | EPIC | 552,487 | Contains "0000". | 包含 4 个连续零 |
+| MILLENNIUM | 🗓️ | Millennium | 千年 | EPIC | 100,000 | Ends in triple zeros. | 数字以 000 结尾 |
+| SEMI_MILLENNIUM | 📜 | Semi-Millennium | 准千年 | EPIC | 100,000 | Ends in "500". | 数字以 500 结尾 |
+| DEEP_VOID_THREE | 🌑 | Deep Void (3) | 虚空深渊(3) | RARE | 37,023 | Contains "000". | 包含 3 个连续零 |
+| CENTURY | 💯 | Century | 世纪 | RARE | 10,000 | Ends in double zeros. | 数字以 00 结尾 |
+| QUARTER_CENTURY | 🪙 | Quarter-Century | 四分之一世纪 | RARE | 10,000 | Ends in "25". | 数字以 25 结尾 |
+| SEMI_CENTURY | 🗓️ | Semi-Century | 准世纪 | RARE | 10,000 | Ends in "50". | 数字以 50 结尾 |
+| THREE_QUARTER_CENTURY | 🕰️ | Three-Quarter Century | 四分之三世纪 | RARE | 10,000 | Ends in "75". | 数字以 75 结尾 |
+| DEEP_VOID | 🕳️ | Deep Void | 虚空深渊 | UNCOMMON | 2,784 | Contains "00". | 包含 2 个连续零 |
+| FEATHER | 🪶 | Feather | 羽毛 | UNCOMMON | 2,667 | The sum of its digits is less than 15. | 各位数字之和小于 15 |
+| CLEAN | 🧼 | Clean | 洁净 | UNCOMMON | 1,000 | Ends in a zero. | 数字以 0 结尾 |
+| SEMI_CLEAN | 🧹 | Semi-Clean | 半洁净 | UNCOMMON | 1,000 | Ends in a 5. | 数字以 5 结尾 |
+| GHOST | 👻 | Ghost | 鬼 | COMMON | 309 | Contains exactly one "0". | 恰含一个 0 |
 
 ## 连续相同串 家族（CONTIGUOUS_RUN）
 
 共 4 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| ➖➖➖➖ | Contiguous Sixes | 连续六个相同 | 神话 | 10,000,010 | 包含 6 个连续相同数字 |
-| ➖➖➖ | Contiguous Fives | 连续五个相同 | 史诗 | 552,487 | 包含 5 个连续相同数字 |
-| ➖➖ | Contiguous Quads | 连续四个相同 | 罕见 | 37,023 | 包含 4 个连续相同数字 |
-| ➖ | Contiguous Trips | 连续三个相同 | 稀有 | 2,784 | 包含 3 个连续相同数字 |
-
-## 九结尾 家族（NINE_ENDING）
-
-共 4 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🥳 | Quint Nine | 五个九 | 神话 | 10,000,010 | 数字以 99999 结尾 |
-| 🎊 | Quad Nine | 四个九 | 异常 | 1,000,001 | 数字以 9999 结尾 |
-| 🎉 | Triple Nine | 三个九 | 史诗 | 100,000 | 数字以 999 结尾 |
-| 🎈 | Double Nine | 两个九 | 罕见 | 10,000 | 数字以 99 结尾 |
-
-## 虚空深渊 家族（VOID_DEPTH）
-
-共 13 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| ⚫ | Deep Void (5) | 虚空深渊(5) | 神话 | 10,000,010 | 包含 5 个连续零 |
-| 🗿 | Eon | 永恒 | 神话 | 10,000,010 | 数字以 00000 结尾 |
-| 🦴 | Semi-Eon | 准永恒 | 神话 | 10,000,010 | 数字恰为 10000 或 99999（准永恒） |
-| 🏛️ | Epoch | 纪元 | 异常 | 1,000,001 | 数字以 0000 结尾 |
-| ⌛ | Semi-Epoch | 准纪元 | 异常 | 1,000,001 | 数字恰为 1000 或 9999（准纪元） |
-| 🌌 | Deep Void (4) | 虚空深渊(4) | 史诗 | 552,487 | 包含 4 个连续零 |
-| 🗓️ | Millennium | 千年 | 史诗 | 100,000 | 数字以 000 结尾 |
-| 📜 | Semi-Millennium | 准千年 | 史诗 | 100,000 | 数字恰为 100 或 999（准千年） |
-| 🌑 | Deep Void (3) | 虚空深渊(3) | 罕见 | 37,023 | 包含 3 个连续零 |
-| 💯 | Century | 世纪 | 罕见 | 10,000 | 数字以 00 结尾 |
-| 🗓️ | Semi-Century | 准世纪 | 罕见 | 10,000 | 数字恰为 50 或 49（准世纪） |
-| 🕳️ | Deep Void | 虚空深渊 | 稀有 | 2,784 | 包含 2 个连续零 |
-| 🧼 | Clean | 洁净 | 稀有 | 1,000 | 数字以 0 结尾 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| CONTIGUOUS_SIXES | ➖➖➖➖ | Contiguous Sixes | 连续六个相同 | MYTHIC | 10,000,010 | Six identical consecutive digits. | 包含 6 个连续相同数字 |
+| CONTIGUOUS_FIVES | ➖➖➖ | Contiguous Fives | 连续五个相同 | EPIC | 552,487 | Five identical consecutive digits. | 包含 5 个连续相同数字 |
+| CONTIGUOUS_QUADS | ➖➖ | Contiguous Quads | 连续四个相同 | RARE | 37,023 | Four identical consecutive digits. | 包含 4 个连续相同数字 |
+| CONTIGUOUS_TRIPS | ➖ | Contiguous Trips | 连续三个相同 | UNCOMMON | 2,784 | Three identical consecutive digits. | 包含 3 个连续相同数字 |
 
 ## 顺子 家族（STRAIGHT）
 
+共 4 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| ROYAL_FLUSH | 👑 | Royal Flush | 皇家同花顺 | ANOMALY | 5,000,005 | Contains 56789 — the highest possible straight. | 包含 56789 |
+| STRAIGHT_FLUSH | 🃏 | Straight Flush | 同花顺 | ANOMALY | 1,449,277 | Contains 5 consecutive same-parity digits (02468, 13579, or their reverse). | 包含同花顺模式（02468/13579/86420/97531） |
+| STRAIGHT | 📏 | Straight | 顺子 | EPIC | 454,546 | Contains a sequence of 5 consecutive digits (ascending or descending). | 包含 5 位连续数字 |
+| FLUSH | 🎨 | Flush | 同花 | UNCOMMON | 2,845 | All digits are either all even or all odd. | 所有数字同为奇数或同为偶数 |
+
+## 二元性 家族（DUALITY）
+
 共 3 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 👑 | Royal Flush | 皇家同花顺 | 异常 | 5,000,005 | 5 位数字为连续数字且同花 |
-| 🃏 | Straight Flush | 同花顺 | 异常 | 1,449,277 | 数字为 5 位连续数字 |
-| 📏 | Straight | 顺子 | 史诗 | 454,546 | 包含 3 位以上连续数字 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| BINARY_SOUL | 🤖 | Binary Soul | 二进制灵魂 | ANOMALY | 1,538,463 | Only 0s and 1s. | 仅由 0 和 1 组成 |
+| FIREFLY | 🪲 | Firefly | 萤火虫 | RARE | 82,237 | One unique digit among identical others. | 由两种数字组成且一种只出现一次 |
+| DUALITY | ☯️ | Duality | 二元性 | RARE | 21,654 | Uses exactly two different digits. | 恰由两种数字组成 |
+
+## 跳房子 家族（HOPSCOTCH）
+
+共 3 枚徽章。
+
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| ZIPPER | 🤐 | Zipper | 拉链 | EPIC | 246,914 | Two digits alternating perfectly. | 恰由两种数字交替组成（无相邻相同） |
+| DOUBLE_HOP | 🦘🦘 | Double Hop | 双跳 | UNCOMMON | 5,321 | A digit appears at every other position (3 times). | 存在隔两位相同的数字（双跳） |
+| HOPSCOTCH | 🦘 | Hopscotch | 跳房子 | COMMON | 312 | A digit appears at every other position (2 times). | 存在隔一位相同的数字（跳房子） |
 
 ## 单调 家族（MONOTONIC）
 
 共 4 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 📈 | Ascension | 升序 | 史诗 | 219,298 | 数字严格递增（每位都比前一位大） |
-| 📉 | Decay | 衰减 | 史诗 | 119,474 | 数字严格递减（每位都比前一位小） |
-| 🪜 | Steps | 台阶 | 罕见 | 20,202 | 数字递增但允许相邻相等 |
-| 🛝 | Slopes | 斜坡 | 罕见 | 12,582 | 数字递减但允许相邻相等 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| ASCENSION | 📈 | Ascension | 升序 | EPIC | 219,298 | Every digit is strictly larger than the previous. | 数字严格递增 |
+| DECAY | 📉 | Decay | 衰减 | EPIC | 119,474 | Every digit is strictly smaller than the previous. | 数字严格递减 |
+| STEPS | 🪜 | Steps | 台阶 | RARE | 20,202 | Digits never decrease. | 数字非减且至少一次上升 |
+| SLOPES | 🛝 | Slopes | 斜坡 | RARE | 12,582 | Digits never increase. | 数字非增且至少一次下降 |
 
 ## 同点 家族（OF_A_KIND）
 
 共 5 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🃏 | Five of a Kind | 五个相同 | 史诗 | 198,020 | 数字中 5 位相同 |
-| 🪟 | Framed Quad | 框中四条 | 史诗 | 137,174 | 6 位数字中间四位相同、两侧不同 |
-| 🖼️🖼️ | Framed Triple | 框中三条 | 史诗 | 137,174 | 5 位数字中间三位相同、两侧不同 |
-| 🍀 | Four of a Kind | 四个相同 | 稀有 | 8,436 | 数字中 4 位相同 |
-| 🎰 | Three of a Kind | 三个相同 | 普通 | 724 | 数字中 3 位相同 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| FIVE_OF_A_KIND | 🃏 | Five of a Kind | 五个相同 | EPIC | 198,020 | Contains five identical digits. | 某个数字出现至少 5 次 |
+| FRAMED_QUAD | 🪟 | Framed Quad | 框中四条 | EPIC | 137,174 | Four of a kind in the middle, bookended by different digits. | 6 位中间四位相同、两侧不同 |
+| FRAMED_TRIPLE | 🖼️🖼️ | Framed Triple | 框中三条 | EPIC | 137,174 | A triple in the middle, bookended by different digits. | 5 位中间三位相同、两侧不同 |
+| QUADS | 🍀 | Four of a Kind | 四个相同 | UNCOMMON | 8,436 | Contains four identical digits. | 某个数字出现至少 4 次 |
+| TRIPS | 🎰 | Three of a Kind | 三个相同 | COMMON | 724 | Contains three identical digits. | 某个数字恰好出现 3 次 |
 
 ## 对子 家族（PAIRS）
 
-共 8 枚徽章。
+共 9 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 👨‍👩‍👧‍👦👯 | Contiguous Three Pair | 连续三对 | 史诗 | 154,321 | 包含 3 个相邻对子 |
-| 🖼️ | Framed Pair | 框中对 | 史诗 | 137,174 | 4 位数字中间两位相同、两侧不同 |
-| 🖼️🖼️🖼️ | Framed Double | 框中对对 | 罕见 | 15,242 | 6 位数字两对相同中间被围住 |
-| 👯‍♀️👯 | Three Pair | 三对 | 罕见 | 10,288 | 包含三对相同数字 |
-| 👨‍👩‍👧‍👦 | Contiguous Two Pair | 连续两对 | 稀有 | 3,957 | 包含 2 个相邻对子 |
-| 👯‍♀️ | Two Pair | 两对 | 普通 | 377 | 包含两对相同数字 |
-| 🫂 | Contiguous Pair | 连续对 | 普通 | 249 | 包含 2 个连续相同数字 |
-| 👯 | Pair | 对子 | 普通 | 120 | 数字恰为一对相同数字 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| CONTIGUOUS_THREE_PAIR | 👨‍👩‍👧‍👦👯 | Contiguous Three Pair | 连续三对 | EPIC | 154,321 | Contains three adjacent contiguous pairs. | 三个对子连续相邻（隔一） |
+| FRAMED_PAIR | 🖼️ | Framed Pair | 框中对 | EPIC | 137,174 | A 4-digit number where the middle two digits match each other but differ from both end digits. | 4 位中间两位相同、两侧不同 |
+| PRONIC | 🧮 | Pronic Number | 普洛尼克数 | EPIC | 100,000 | The product of two consecutive integers (n * n+1). | 数字为相邻两整数乘积（n(n+1)） |
+| FRAMED_DOUBLE | 🖼️🖼️🖼️ | Framed Double | 框中对对 | RARE | 15,242 | Two pairs in the middle, bookended by different digits. | 6 位两对相同且被不同数字围住 |
+| THREE_PAIR | 👯‍♀️👯 | Three Pair | 三对 | RARE | 10,288 | Contains three distinct pairs of matching digits. | 至少三个数字恰好出现 2 次 |
+| CONTIGUOUS_TWO_PAIR | 👨‍👩‍👧‍👦 | Contiguous Two Pair | 连续两对 | UNCOMMON | 3,957 | Contains two adjacent contiguous pairs. | 包含两个相邻对子 |
+| TWO_PAIR | 👯‍♀️ | Two Pair | 两对 | COMMON | 377 | Contains two distinct pairs of matching digits. | 至少两个数字出现 2 次 |
+| CONTIGUOUS_PAIR | 🫂 | Contiguous Pair | 连续对 | COMMON | 249 | Contains a contiguous pair of matching digits. | 存在相邻出现的对子 |
+| PAIR | 👯 | Pair | 对子 | COMMON | 120 | Contains a pair of matching digits. | 存在某个数字出现至少 2 次 |
 
-## 二元性 家族（DUALITY）
+## 平衡 家族（EQUILIBRIUM）
 
-共 2 枚徽章。
+共 4 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🪲 | Firefly | 萤火虫 | 罕见 | 82,237 | 数字由两个数字组成且一个只出现一次 |
-| ☯️ | Duality | 二元性 | 罕见 | 21,654 | 数字恰由两种数字组成 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| ECHO | 📣 | Echo | 回声 | EPIC | 100,100 | The first half repeats as the second half. | 前半段与后半段完全相同 |
+| EQUILIBRIUM | 🧘 | Equilibrium | 平衡数 | UNCOMMON | 1,000 | The first and last digits are identical. | 首尾数字相同 |
+| SANDWICH | 🥪 | Sandwich | 三明治 | UNCOMMON | 1,000 | First and last digits match, with at least one different digit between them. | 首尾相同且中间含不同数字 |
+| LIFTOFF | 🚀 | Liftoff | 升空 | COMMON | 200 | The first digit is larger than the last. | 首数字大于末数字 |
 
 ## 回文 家族（PALINDROME）
 
-共 2 枚徽章。
+共 3 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🪞 | Palindrome | 回文数 | 罕见 | 50,025 | 正读反读相同（回文） |
-| 🪞 | Pocket Mirror | 口袋镜 | 稀有 | 2,124 | 包含 4 位以上回文子串 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| PALINDROME | 🪞 | Palindrome | 回文数 | RARE | 50,025 | Reads the same forwards and backwards. | 正读反读相同（回文） |
+| POCKET_MIRROR | 🪞 | Pocket Mirror | 口袋镜 | UNCOMMON | 2,124 | Contains a palindrome of 4 or more digits. | 包含 4 位以上回文子串 |
+| PRIME | 💎 | Prime Number | 质数 | UNCOMMON | 1,274 | Divisible only by 1 and itself. | 仅能被 1 和自身整除 |
 
 ## 葫芦 家族（BOAT）
 
 共 2 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🏰 | Contiguous Full House | 连续葫芦 | 罕见 | 30,111 | 连续出现葫芦（3+2 相同） |
-| 🏠 | Full House | 葫芦 | 稀有 | 2,397 | 3 个相同 + 2 个相同（葫芦） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| CONTIGUOUS_BOAT | 🏰 | Contiguous Full House | 连续葫芦 | RARE | 30,111 | Contains a contiguous set of three adjacent to a contiguous set of two. | 葫芦且三连与对子紧邻 |
+| BOAT | 🏠 | Full House | 葫芦 | UNCOMMON | 2,397 | Contains a set of three and a set of two. | 3 个相同 + 2 个相同（葫芦） |
 
 ## 书挡 家族（BOOKENDS）
 
 共 3 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 👐 | Paired Bookends | 成对书挡 | 罕见 | 11,122 | 前两位与后两位相同 |
-| 📚 | Bookends | 书挡 | 罕见 | 10,010 | 前两位与后两位相同 |
-| 📖 | Mirror Bookends | 镜像书挡 | 罕见 | 10,010 | 前两位与后两位镜像相同 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| PAIRED_BOOKENDS | 👐 | Paired Bookends | 成对书挡 | RARE | 11,122 | Starts with a pair and ends with a different pair. | 前两位相同、后两位相同且两组不同 |
+| BOOKENDS | 📚 | Bookends | 书挡 | RARE | 10,010 | The first two digits match the last two. | 前两位与后两位相同 |
+| MIRROR_BOOKENDS | 📖 | Mirror Bookends | 镜像书挡 | RARE | 10,010 | First two digits are reversed as the last two. | 前两位与后两位镜像对称 |
 
 ## 峰谷 家族（PEAK）
 
 共 4 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🏔️ | Mountain | 山 | 稀有 | 5,885 | 数字先升后降（山峰形） |
-| 🏜️ | Valley | 谷 | 稀有 | 4,199 | 数字先降后升（山谷形） |
-| 🗻 | Mesa | 平顶山 | 稀有 | 1,568 | 数字先升后降（平顶山形） |
-| 🌄 | Canyon | 峡谷 | 稀有 | 1,184 | 数字先降后升（峡谷形） |
-
-## 跳房子 家族（HOPSCOTCH）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🦘🦘 | Double Hop | 双跳 | 稀有 | 5,321 | 每隔 2 位出现相同数字 |
-| 🦘 | Hopscotch | 跳房子 | 普通 | 312 | 每隔 2 位出现相同数字（跳房子） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| MOUNTAIN | 🏔️ | Mountain | 山 | UNCOMMON | 5,885 | Digits ascend to a peak and then descend. | 先升后降（山峰形） |
+| VALLEY | 🏜️ | Valley | 谷 | UNCOMMON | 4,199 | Digits descend to a trough and then ascend. | 先降后升（山谷形） |
+| MESA | 🗻 | Mesa | 平顶山 | UNCOMMON | 1,568 | Digits rise to a peak, then fall (flat stretches allowed). | 先升后降（平顶山形） |
+| CANYON | 🌄 | Canyon | 峡谷 | UNCOMMON | 1,184 | Digits fall to a floor, then rise (flat stretches allowed). | 先降后升（峡谷形） |
 
 ## 重复 家族（REPEAT）
 
 共 2 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🔂 | Mini Echo | 迷你回声 | 稀有 | 3,704 | 包含相邻的两组相同两位 |
-| 🎶 | Rhyme | 押韵 | 稀有 | 1,872 | 包含重复的子串（押韵） |
-
-## 平衡 家族（EQUILIBRIUM）
-
-共 2 枚徽章。
-
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🧘 | Equilibrium | 平衡数 | 稀有 | 1,000 | 首尾数字相同（平衡） |
-| 🥪 | Sandwich | 三明治 | 稀有 | 1,000 | 首尾相同且中间有不同数字（三明治） |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| MINI_ECHO | 🔂 | Mini Echo | 迷你回声 | UNCOMMON | 3,704 | Contains an adjacent 2-digit repeat. | 包含相邻的两组相同两位 |
+| RHYME | 🎶 | Rhyme | 押韵 | UNCOMMON | 1,872 | Contains the same 2+ digit substring twice. | 包含出现两次的相同子串 |
 
 ## 山丘 家族（HILLS）
 
 共 2 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🏞️ | Hills | 山丘 | 普通 | 733 | 数字起伏如山丘（无连续单调区间） |
-| 🐫 | Dunes | 沙丘 | 普通 | 364 | 去重后起伏如山丘 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| HILLS | 🏞️ | Hills | 山丘 | COMMON | 733 | Digits strictly alternate between rising and falling. | 数字起伏如丘陵（无相邻同向） |
+| DUNES | 🐫 | Dunes | 沙丘 | COMMON | 364 | Rises and falls keep alternating (flat stretches allowed). | 去重后起伏如丘陵 |
 
 ## 无家族 家族
 
-共 64 枚徽章。
+共 46 枚徽章。
 
-| 图标 | 徽章 | 中文 | 等级 | EP | 注释 |
-|---|---|---|---|---|---|
-| 🏈 | 17776 | 橄榄球17776 | 神话 | 100,000,100 | 数字恰为 17776（橄榄球梗） |
-| ⏳ | Full Day | 满日 | 神话 | 100,000,100 | 数字为完整日期 |
-| 🐐 | One Million | 一百万 | 神话 | 100,000,100 | 数字恰为 1000000（一百万） |
-| 🐚 | Golden Ratio | 黄金比例 | 神话 | 33,333,367 | 数字包含黄金比例 161803 或 618033 |
-| 7️⃣ | Power of Seven | 七的幂 | 神话 | 12,500,013 | 数字为 7 的幂 |
-| ❗ | Factorial | 阶乘 | 神话 | 11,111,122 | 数字为阶乘（如 1! 2! 6! 24!） |
-| 👋 | Hello | 你好 | 神话 | 11,111,122 | 数字包含 07734（倒看 HELLO） |
-| 5️⃣ | Power of Five | 五的幂 | 神话 | 11,111,122 | 数字为 5 的幂 |
-| 🔺 | Power of Three | 三的幂 | 异常 | 7,692,315 | 数字为 3 的幂 |
-| 💾 | Power of Two | 二的幂 | 异常 | 5,000,005 | 数字为 2 的幂 |
-| 🐚 | Fibonacci Number | 斐波那契数 | 异常 | 3,333,337 | 数字为斐波那契数 |
-| 🥛 | Homogeneous | 全相同 | 异常 | 2,222,224 | 所有数字相同（如 111111） |
-| 🤖 | Binary Soul | 二进制灵魂 | 异常 | 1,538,463 | 仅由 0 和 1 组成 |
-| ✌️ | Two Digits | 两位数 | 异常 | 1,111,112 | 数字恰为两位数 |
-| 🕵️ | Spy Number | 间谍数 | 异常 | 1,030,929 | 数字各位乘积等于各位和 |
-| 🙃 | Strobogrammatic | 旋转对称数 | 史诗 | 502,513 | 旋转 180 度仍相同（0/1/6/8/9） |
-| 🤐 | Zipper | 拉链 | 史诗 | 246,914 | 由两个数字交替组成（如 121212） |
-| 🤟 | Three Digits | 三位数 | 史诗 | 111,111 | 数字恰为三位数 |
-| 📣 | Echo | 回声 | 史诗 | 100,100 | 前半段与后半段完全相同 |
-| 🪨 | Colossal | 巨数 | 史诗 | 100,000 | 数字为巨数（多位长数） |
-| 🧮 | Pronic Number | 普洛尼克数 | 史诗 | 100,000 | 数字为相邻两整数乘积（n(n+1)） |
-| 🕶️ | Secret Agent | 特工 | 罕见 | 34,614 | 数字包含 007（特工） |
-| 🧱 | Heavy | 沉重 | 罕见 | 33,300 | 各位数字之和超过 45 |
-| 🔺 | Divisible by Three | 能被三整除 | 罕见 | 24,414 | 能被 3 整除 |
-| 🍀 | Four Digits | 四位数 | 罕见 | 11,111 | 数字恰为四位数 |
-| 🪙 | Quarter-Century | 四分之一世纪 | 罕见 | 10,000 | 数字以 25 结尾 |
-| 🕰️ | Three-Quarter Century | 四分之三世纪 | 罕见 | 10,000 | 数字以 75 结尾 |
-| 🟰 | Equation | 方程式 | 稀有 | 7,720 | 数字可写成 a op b = c 的等式 |
-| 📉 | Low Ball | 低球 | 稀有 | 6,400 | 数字较小（低球） |
-| 🤑 | High Roller | 高额投注者 | 稀有 | 5,120 | 数字较大（高额投注者） |
-| ⚡ | Alternator | 交替器 | 稀有 | 2,845 | 奇偶数字交替出现 |
-| 🎨 | Flush | 同花 | 稀有 | 2,845 | 数字各位数字同奇偶（同花） |
-| 🪶 | Feather | 羽毛 | 稀有 | 2,667 | 各位数字之和小于 15 |
-| ♠️ | Blackjack | 二十一点 | 稀有 | 2,521 | 数字恰为 21（二十一点） |
-| 🎲 | Snake Eyes | 蛇眼 | 稀有 | 2,121 | 数字恰为 11（蛇眼） |
-| ⚖️ | Balanced | 平衡 | 稀有 | 1,959 | 数字两端平衡（首尾和相等） |
-| 💎 | Prime Number | 质数 | 稀有 | 1,274 | 仅能被 1 和自身整除 |
-| ⚜️ | Trinity | 三位一体 | 稀有 | 1,265 | 数字恰由三种数字组成 |
-| 🍩 | Dozen | 一打 | 稀有 | 1,200 | 是 12 的倍数（一打） |
-| 🖐️ | Five Digits | 五位数 | 稀有 | 1,111 | 数字恰为五位数 |
-| 🕚 | Eleven | 十一 | 稀有 | 1,100 | 是 11 的倍数 |
-| 🤝 | Harshad Number | 哈沙德数 | 稀有 | 1,048 | 数字可被其各位数字之和整除 |
-| 🧹 | Semi-Clean | 半洁净 | 稀有 | 1,000 | 数字以 5 结尾 |
-| 🎰 | Lucky Seven (Divisible) | 幸运七(整除) | 普通 | 700 | 是 7 的倍数 |
-| 🥗 | Heterogeneous | 全不同 | 普通 | 593 | 所有数字各不相同 |
-| ↕️ | Gap One | 间隔一 | 普通 | 529 | 数字各相邻位差为 1 |
-| 👻 | Ghost | 鬼 | 普通 | 309 | 数字恰为 0（鬼） |
-| 🎻 | Quartet | 四重奏 | 普通 | 290 | 数字恰由四种数字组成 |
-| 💎 | Beryllium (4) | 铍(4) | 普通 | 282 | 数字恰为 4（原子序数 4） |
-| 🧼 | Boron (5) | 硼(5) | 普通 | 282 | 数字恰为 5（原子序数 5） |
-| ✏️ | Carbon (6) | 碳(6) | 普通 | 282 | 数字恰为 6（原子序数 6） |
-| 🦷 | Fluorine (9) | 氟(9) | 普通 | 282 | 数字恰为 9（原子序数 9） |
-| 🎈 | Helium (2) | 氦(2) | 普通 | 282 | 数字恰为 2（原子序数 2） |
-| 💧 | Hydrogen (1) | 氢(1) | 普通 | 282 | 数字恰为 1（原子序数 1） |
-| 🔋 | Lithium (3) | 锂(3) | 普通 | 282 | 数字恰为 3（原子序数 3） |
-| ❄️ | Nitrogen (7) | 氮(7) | 普通 | 282 | 数字恰为 7（原子序数 7） |
-| 💨 | Oxygen (8) | 氧(8) | 普通 | 282 | 数字恰为 8（原子序数 8） |
-| ⚓ | Grounded | 接地 | 普通 | 250 | 首数字小于末数字 |
-| 7️⃣ | Lucky Seven | 幸运七 | 普通 | 213 | 数字恰为 7 |
-| ⚖️ | Even | 偶数 | 普通 | 200 | 是偶数 |
-| 🚀 | Liftoff | 升空 | 普通 | 200 | 首数字大于末数字 |
-| 🦄 | Odd | 奇数 | 普通 | 200 | 是奇数 |
-| 🏘️ | Neighbors | 邻居 | 普通 | 161 | 数字相邻位差为 1 |
-| 🐝 | Six Digits | 六位数 | 普通 | 111 | 数字恰为六位数 |
+| ID | 图标 | 徽章(原文) | 中文 | 等级 | EP | 官方描述 | 注释 |
+|---|---|---|---|---|---|---|---|
+| FULL_DAY | ⏳ | Full Day | 满日 | MYTHIC | 100,000,100 | Exactly "86400", the number of seconds in a day. | 数字恰为 86400 |
+| ONE_MILLION | 🐐 | One Million | 一百万 | MYTHIC | 100,000,100 | The number one million. | 数字恰为 1000000 |
+| GOLDEN_RATIO | 🐚 | Golden Ratio | 黄金比例 | MYTHIC | 33,333,367 | Exactly φ (1618, 16180, or 161803). | 数字恰为 1618 / 16180 / 161803 |
+| FACTORIAL | ❗ | Factorial | 阶乘 | MYTHIC | 11,111,122 | A factorial number (n!). | 数字为阶乘数（1/2/6/24/120…） |
+| HELLO | 👋 | Hello | 你好 | MYTHIC | 11,111,122 | Contains "07734" (spells HELLO upside-down). | 包含 07734（倒看 HELLO） |
+| POWER_OF_FIVE | 5️⃣ | Power of Five | 五的幂 | MYTHIC | 11,111,122 | A power of 5 (5ⁿ). | 数字为 5 的幂 |
+| POWER_OF_THREE | 🔺 | Power of Three | 三的幂 | ANOMALY | 7,692,315 | A power of 3 (3ⁿ). | 数字为 3 的幂 |
+| POWER_OF_TWO | 💾 | Power of Two | 二的幂 | ANOMALY | 5,000,005 | A power of 2 (2ⁿ). | 数字为 2 的幂 |
+| FIBONACCI | 🐚 | Fibonacci Number | 斐波那契数 | ANOMALY | 3,333,337 | Part of the golden ratio sequence found in nature. | 数字为斐波那契数 |
+| HOMOGENEOUS | 🥛 | Homogeneous | 全相同 | ANOMALY | 2,222,224 | All digits are the same. | 所有数字相同 |
+| TWO_DIGITS | ✌️ | Two Digits | 两位数 | ANOMALY | 1,111,112 | Has exactly two digits. | 数字恰为两位数 |
+| SPY | 🕵️ | Spy Number | 间谍数 | ANOMALY | 1,030,929 | The sum of its digits equals the product of its digits. | 各位数字之积等于各位之和（1/2 除外） |
+| THREE_DIGITS | 🤟 | Three Digits | 三位数 | EPIC | 111,111 | Has exactly three digits. | 数字恰为三位数 |
+| COLOSSAL | 🪨 | Colossal | 巨数 | EPIC | 100,000 | A number greater than 999,000. | 数字大于 999000 |
+| SECRET_AGENT | 🕶️ | Secret Agent | 特工 | RARE | 34,614 | Contains "007". | 包含 007（特工） |
+| HEAVY | 🧱 | Heavy | 沉重 | RARE | 33,300 | The sum of its digits exceeds 45. | 各位数字之和超过 45 |
+| DIVISIBLE_BY_THREE | 🔺 | Divisible by Three | 三的倍数 | RARE | 24,414 | Every digit is divisible by 3. | 每个数字位都能被 3 整除（只含 0/3/6/9） |
+| FOUR_DIGITS | 🍀 | Four Digits | 四位数 | RARE | 11,111 | Has exactly four digits. | 数字恰为四位数 |
+| EQUATION | 🟰 | Equation | 方程式 | UNCOMMON | 7,720 | Insert one of + − × ÷ and an equals sign to make a true equation. | 数字可拆成 a op b = c 的等式 |
+| LOW_BALL | 📉 | Low Ball | 低球 | UNCOMMON | 6,400 | Contains only digits from 0 to 4. | 每位数字都在 0~4 之间 |
+| HIGH_ROLLER | 🤑 | High Roller | 高额投注者 | UNCOMMON | 5,120 | Contains only digits from 5 to 9. | 每位数字都在 5~9 之间 |
+| ALTERNATOR | ⚡ | Alternator | 交替器 | UNCOMMON | 2,845 | Digits strictly alternate between even and odd. | 奇偶数字交替出现 |
+| BLACKJACK | ♠️ | Blackjack | 二十一点 | UNCOMMON | 2,521 | Digits sum exactly to 21. | 各位数字之和为 21 |
+| SNAKE_EYES | 🎲 | Snake Eyes | 蛇眼 | UNCOMMON | 2,121 | Contains a single pair of ones and no other pairs. | 恰含两个 1 且其他数字均不重复 |
+| BALANCED | ⚖️ | Balanced | 平衡 | UNCOMMON | 1,959 | Sum of first half of digits equals sum of second half. | 前后两半各位数字之和相等 |
+| TRINITY | ⚜️ | Trinity | 三位一体 | UNCOMMON | 1,265 | Uses exactly three different digits. | 恰由三种数字组成 |
+| DOZEN | 🍩 | Dozen | 一打 | UNCOMMON | 1,200 | Divisible by 12. | 是 12 的倍数 |
+| FIVE_DIGITS | 🖐️ | Five Digits | 五位数 | UNCOMMON | 1,111 | Has exactly five digits. | 数字恰为五位数 |
+| ELEVEN | 🕚 | Eleven | 十一 | UNCOMMON | 1,100 | Divisible by 11. | 是 11 的倍数 |
+| HARSHAD | 🤝 | Harshad Number | 哈沙德数 | UNCOMMON | 1,048 | Divisible by the sum of its own digits. | 数字可被其各位数字之和整除 |
+| LUCKY_SEVEN_DIV | 🎰 | Lucky Seven (Divisible) | 幸运七(整除) | COMMON | 700 | Divisible by 7. | 是 7 的倍数 |
+| HETEROGENEOUS | 🥗 | Heterogeneous | 全不同 | COMMON | 593 | No repeated digits. | 所有数字各不相同 |
+| QUARTET | 🎻 | Quartet | 四重奏 | COMMON | 290 | Uses exactly four different digits. | 恰由四种数字组成 |
+| BERYLLIUM | 💎 | Beryllium (4) | 铍(4) | COMMON | 282 | Contains exactly one "4". | 恰含一个 4（原子序数 4） |
+| BORON | 🧼 | Boron (5) | 硼(5) | COMMON | 282 | Contains exactly one "5". | 恰含一个 5（原子序数 5） |
+| CARBON | ✏️ | Carbon (6) | 碳(6) | COMMON | 282 | Contains exactly one "6". | 恰含一个 6（原子序数 6） |
+| FLUORINE | 🦷 | Fluorine (9) | 氟(9) | COMMON | 282 | Contains exactly one "9". | 恰含一个 9（原子序数 9） |
+| HELIUM | 🎈 | Helium (2) | 氦(2) | COMMON | 282 | Contains exactly one "2". | 恰含一个 2（原子序数 2） |
+| HYDROGEN | 💧 | Hydrogen (1) | 氢(1) | COMMON | 282 | Contains exactly one "1". | 恰含一个 1（原子序数 1） |
+| LITHIUM | 🔋 | Lithium (3) | 锂(3) | COMMON | 282 | Contains exactly one "3". | 恰含一个 3（原子序数 3） |
+| NITROGEN | ❄️ | Nitrogen (7) | 氮(7) | COMMON | 282 | Contains exactly one "7". | 恰含一个 7（原子序数 7） |
+| OXYGEN | 💨 | Oxygen (8) | 氧(8) | COMMON | 282 | Contains exactly one "8". | 恰含一个 8（原子序数 8） |
+| GROUNDED | ⚓ | Grounded | 接地 | COMMON | 250 | The first digit is smaller than the last. | 首数字小于末数字 |
+| EVEN | ⚖️ | Even | 偶数 | COMMON | 200 | Divisible by 2. | 是偶数 |
+| ODD | 🦄 | Odd | 奇数 | COMMON | 200 | Not divisible by 2. | 是奇数 |
+| NEIGHBORS | 🏘️ | Neighbors | 邻居 | COMMON | 161 | Contains two digits that are adjacent in value. | 存在相邻数字相差 1 |
