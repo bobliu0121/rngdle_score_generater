@@ -916,7 +916,10 @@ HOME = r"""<!doctype html>
       var f = document.createElement("iframe");
       f.id = "res";
       document.body.appendChild(f);
-      f.srcdoc = saved;
+      // 恢复的是动画已播完的终态 HTML，meta（等级标签/百分位）此时已 anim-in 正常显示：
+      // 注入前把 meta 拉回隐藏态（anim-wait），iframe 加载瞬间即为隐藏，之后 rngdleSkipAnim
+      // 的 150ms 延迟再触发放大动画——避免"先闪现正常标签、随后被动画覆盖"。
+      f.srcdoc = saved.replace(/class="meta[^"]*anim-in[^"]*"/, 'class="meta anim-wait"');
       $("close").style.display = "block";
       $("skip").style.display = "none";   // 恢复场景不重播动画，无需跳过按钮
       var t0 = Date.now();
