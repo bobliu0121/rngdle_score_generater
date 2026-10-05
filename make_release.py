@@ -22,7 +22,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 # 便携运行时来源：默认取运行本脚本的解释器所在安装目录（即 sys.base_prefix）
 PYSRC = os.environ.get("RNGDLE_PYSRC") or sys.base_prefix
 REL = os.path.join(BASE, "release", "RNGdle")
-VERSION = "1.0.4"
+VERSION = "1.0.5"
 ZIP = os.path.join(BASE, "RNGdle_standalone_v%s_win64.zip" % VERSION)
 
 # Lib 里不需要的大目录（tkinter/tcl 与测试套件；服务器只用标准库的网络/JSON/线程部分）
@@ -38,15 +38,12 @@ SKIP_DLL = {"_tkinter.pyd", "tcl86t.dll", "tk86t.dll", "_sqlite3.pyd", "sqlite3.
 BAT = """@echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-echo ============================================
-echo   RNGdle 本地服务器
-echo   配置页： http://127.0.0.1:8765/
-echo   关闭本窗口即停止服务（Ctrl+C 亦可）
-echo ============================================
-echo.
-start "RNGdle 服务器" "%~dp0runtime\\python.exe" "%~dp0rngdle_server.py"
-timeout /t 2 /nobreak >nul
-start "" http://127.0.0.1:8765/
+rem 服务器以最小化窗口启动：不弹出控制台黑窗，窗口收进任务栏（标题"RNGdle 服务器"），
+rem 点击任务栏图标可展开查看日志，关闭该窗口即停止服务。
+start "RNGdle 服务器" /min "%~dp0runtime\\python.exe" "%~dp0rngdle_server.py"
+rem 延迟 2 秒后在默认浏览器打开配置页；打开动作放后台最小化 cmd 执行，本窗口立即退出。
+start "" /min cmd /c "timeout /t 2 /nobreak >nul & start "" http://127.0.0.1:8765/"
+exit /b
 """
 
 README_TXT = """RNGdle 本地计分器 —— 免安装使用说明
@@ -63,7 +60,9 @@ README_TXT = """RNGdle 本地计分器 —— 免安装使用说明
       · 选抽取模式（随机区间 / 候选列表 / 固定数字 / EP 区间 / 指定等级）
       · 保存配置 → 点 GENERATE 按配置抽一次
       · 结果页右上角 ✕ 返回配置页；「跳过动画」直接看最终结果
-    也可以手动启动（前台运行，能直接看到日志）：
+    启动后不会弹出控制台黑窗：服务器窗口最小化收进任务栏
+    （任务栏出现"RNGdle 服务器"，点击可展开查看日志，关闭该窗口即停止服务）。
+    想在前台运行看日志，可手动启动：
         runtime\\python.exe rngdle_server.py
     说明：
       · EP 区间 / 指定等级两种模式首次使用会扫描全部 100 万个数字建立索引，
