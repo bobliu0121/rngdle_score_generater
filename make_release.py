@@ -22,7 +22,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 # 便携运行时来源：默认取运行本脚本的解释器所在安装目录（即 sys.base_prefix）
 PYSRC = os.environ.get("RNGDLE_PYSRC") or sys.base_prefix
 REL = os.path.join(BASE, "release", "RNGdle")
-VERSION = "1.0.5"
+VERSION = "1.0.9"
 ZIP = os.path.join(BASE, "RNGdle_standalone_v%s_win64.zip" % VERSION)
 
 # Lib 里不需要的大目录（tkinter/tcl 与测试套件；服务器只用标准库的网络/JSON/线程部分）
@@ -38,9 +38,10 @@ SKIP_DLL = {"_tkinter.pyd", "tcl86t.dll", "tk86t.dll", "_sqlite3.pyd", "sqlite3.
 BAT = """@echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-rem 服务器以最小化窗口启动：不弹出控制台黑窗，窗口收进任务栏（标题"RNGdle 服务器"），
-rem 点击任务栏图标可展开查看日志，关闭该窗口即停止服务。
-start "RNGdle 服务器" /min "%~dp0runtime\\python.exe" "%~dp0rngdle_server.py"
+rem 用 pythonw 无窗口启动服务器：不弹控制台、不在任务栏占用按钮，
+rem 进程驻留系统托盘通知区（默认收在右下角小箭头里，展开可见 RNGdle 图标），
+rem 左键单击托盘图标可打开配置页，右键菜单可退出服务。
+start "" "%~dp0runtime\\pythonw.exe" "%~dp0rngdle_server.py"
 rem 延迟 2 秒后在默认浏览器打开配置页；打开动作放后台最小化 cmd 执行，本窗口立即退出。
 start "" /min cmd /c "timeout /t 2 /nobreak >nul & start "" http://127.0.0.1:8765/"
 exit /b
@@ -60,8 +61,9 @@ README_TXT = """RNGdle 本地计分器 —— 免安装使用说明
       · 选抽取模式（随机区间 / 候选列表 / 固定数字 / EP 区间 / 指定等级）
       · 保存配置 → 点 GENERATE 按配置抽一次
       · 结果页右上角 ✕ 返回配置页；「跳过动画」直接看最终结果
-    启动后不会弹出控制台黑窗：服务器窗口最小化收进任务栏
-    （任务栏出现"RNGdle 服务器"，点击可展开查看日志，关闭该窗口即停止服务）。
+    启动后没有任何窗口弹出：服务器静默驻留系统托盘通知区
+    （默认收在任务栏右下角的小箭头里，展开可见 RNGdle 图标），
+    左键单击托盘图标打开配置页，右键菜单可退出服务。
     想在前台运行看日志，可手动启动：
         runtime\\python.exe rngdle_server.py
     说明：
@@ -103,11 +105,16 @@ def size_of(path):
 
 def copy_py_runtime(dst):
     os.makedirs(dst, exist_ok=True)
-    for f in ("python.exe", "pythonw.exe", "python3.dll", "python312.dll",
+    # python 主 DLL 不写死版本号：动态拷贝 python*.dll（python3.dll / python312.dll / python314.dll 等），
+    # 避免便携源是 3.14 却只拷 python312.dll 导致 runtime 缺 DLL、python.exe 无法启动。
+    for f in ("python.exe", "pythonw.exe", "python3.dll",
               "vcruntime140.dll", "vcruntime140_1.dll", "LICENSE.txt"):
         s = os.path.join(PYSRC, f)
         if os.path.exists(s):
             shutil.copy2(s, dst)
+    import glob
+    for s in glob.glob(os.path.join(PYSRC, "python*.dll")):
+        shutil.copy2(s, dst)
     dllsrc, dlldst = os.path.join(PYSRC, "DLLs"), os.path.join(dst, "DLLs")
     os.makedirs(dlldst, exist_ok=True)
     for f in os.listdir(dllsrc):

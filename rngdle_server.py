@@ -1095,7 +1095,184 @@ class Handler(BaseHTTPRequestHandler):
         print("[%s] %s" % (self.address_string(), fmt % args))
 
 
+# ---------------------------------------------------------------------------
+# 托盘图标（pythonw 无控制台模式）：服务器静默驻留系统托盘通知区
+# （默认收在任务栏右下角小箭头里），左键单击打开配置页，右键菜单可退出服务。
+# 纯 ctypes 实现，不依赖第三方库；python.exe 前台模式不启用。
+# ---------------------------------------------------------------------------
+def _has_console():
+    try:
+        import ctypes
+        return bool(ctypes.windll.kernel32.GetConsoleWindow())
+    except Exception:
+        return False
+
+
+def _start_tray():
+    """创建托盘图标并运行消息循环（守护线程）。仅 pythonw 启动时调用。"""
+    import ctypes
+    import webbrowser
+    from ctypes import wintypes
+
+    WM_APP = 0x8000
+    CB_MSG = WM_APP + 1                      # 回调消息必须落在 WM_APP..0xBFFF
+    NIM_ADD, NIM_DELETE, NIM_SETVERSION = 0, 2, 4
+    NIF_MESSAGE, NIF_ICON, NIF_TIP = 1, 2, 4
+    WM_LBUTTONUP, WM_LBUTTONDBLCLK = 0x0202, 0x0203
+    WM_RBUTTONUP, WM_COMMAND, WM_DESTROY = 0x0205, 0x0111, 0x0002
+    ID_OPEN, ID_EXIT = 1, 2
+    URL = "http://127.0.0.1:%d/" % PORT
+
+    user32 = ctypes.windll.user32
+    shell32 = ctypes.windll.shell32
+    kernel32 = ctypes.windll.kernel32
+
+    # 回调返回 LRESULT（64 位指针值），不能用 32 位 c_long，否则返回值截断
+    WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT,
+                                 wintypes.WPARAM, wintypes.LPARAM)
+
+    class WNDCLASS(ctypes.Structure):
+        _fields_ = [("style", wintypes.UINT), ("lpfnWndProc", WNDPROC),
+                    ("cbClsExtra", ctypes.c_int), ("cbWndExtra", ctypes.c_int),
+                    ("hInstance", wintypes.HINSTANCE), ("hIcon", wintypes.HICON),
+                    ("hCursor", wintypes.HANDLE), ("hbrBackground", wintypes.HANDLE),
+                    ("lpszMenuName", wintypes.LPCWSTR), ("lpszClassName", wintypes.LPCWSTR)]
+
+    class NOTIFYICONDATAW(ctypes.Structure):
+        _fields_ = [("cbSize", wintypes.DWORD), ("hWnd", wintypes.HWND),
+                    ("uID", wintypes.UINT), ("uFlags", wintypes.UINT),
+                    ("uCallbackMessage", wintypes.UINT), ("hIcon", wintypes.HICON),
+                    ("szTip", wintypes.WCHAR * 128), ("dwState", wintypes.DWORD),
+                    ("dwStateMask", wintypes.DWORD), ("szInfo", wintypes.WCHAR * 256),
+                    ("uVersion", wintypes.UINT), ("szInfoTitle", wintypes.WCHAR * 64),
+                    ("dwInfoFlags", wintypes.DWORD), ("guidItem", ctypes.c_byte * 16),
+                    ("hBalloonIcon", wintypes.HICON)]
+
+    # 逐个声明参数/返回类型，避免 64 位指针在 ctypes 默认 32 位转换下溢出
+    user32.LoadIconW.restype = wintypes.HICON
+    user32.LoadIconW.argtypes = [wintypes.HINSTANCE, wintypes.LPCWSTR]
+    user32.DefWindowProcW.restype = ctypes.c_ssize_t  # LRESULT（64 位）
+    user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT,
+                                      wintypes.WPARAM, wintypes.LPARAM]
+    user32.RegisterClassW.restype = wintypes.ATOM
+    user32.RegisterClassW.argtypes = [ctypes.POINTER(WNDCLASS)]
+    user32.CreateWindowExW.restype = wintypes.HWND
+    user32.CreateWindowExW.argtypes = [wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                       wintypes.DWORD, ctypes.c_int, ctypes.c_int,
+                                       ctypes.c_int, ctypes.c_int, wintypes.HWND,
+                                       wintypes.HMENU, wintypes.HINSTANCE, wintypes.LPVOID]
+    user32.GetCursorPos.restype = wintypes.BOOL
+    user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
+    user32.CreatePopupMenu.restype = wintypes.HMENU
+    user32.AppendMenuW.restype = wintypes.BOOL
+    user32.AppendMenuW.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_size_t,
+                                   wintypes.LPCWSTR]  # UINT_PTR = c_size_t
+    user32.TrackPopupMenu.restype = wintypes.BOOL
+    user32.TrackPopupMenu.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_int,
+                                      ctypes.c_int, ctypes.c_int, wintypes.HWND,
+                                      ctypes.c_void_p]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.PostMessageW.restype = wintypes.BOOL
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT,
+                                    wintypes.WPARAM, wintypes.LPARAM]
+    user32.GetMessageW.restype = wintypes.BOOL
+    user32.GetMessageW.argtypes = [ctypes.POINTER(wintypes.MSG), wintypes.HWND,
+                                   wintypes.UINT, wintypes.UINT]
+    user32.TranslateMessage.restype = wintypes.BOOL
+    user32.TranslateMessage.argtypes = [ctypes.POINTER(wintypes.MSG)]
+    user32.DispatchMessageW.restype = ctypes.c_ssize_t  # LRESULT（64 位）
+    user32.DispatchMessageW.argtypes = [ctypes.POINTER(wintypes.MSG)]
+    kernel32.GetModuleHandleW.restype = wintypes.HMODULE
+    kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+    shell32.Shell_NotifyIconW.restype = wintypes.BOOL
+    shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
+
+    def open_page():
+        try:
+            webbrowser.open(URL)
+        except Exception:
+            pass
+
+    def quit_server():
+        try:
+            shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
+        except Exception:
+            pass
+        os._exit(0)
+
+    def show_menu():
+        hmenu = user32.CreatePopupMenu()
+        user32.AppendMenuW(hmenu, 0, ID_OPEN, "打开配置页")
+        user32.AppendMenuW(hmenu, 0, ID_EXIT, "退出服务")
+        pt = wintypes.POINT()
+        user32.GetCursorPos(ctypes.byref(pt))
+        user32.SetForegroundWindow(hwnd)
+        user32.TrackPopupMenu(hmenu, 0x0002, pt.x, pt.y, 0, hwnd, None)
+        user32.PostMessageW(hwnd, WM_APP, 0, 0)  # 触发菜单消失消息
+
+    @WNDPROC
+    def wndproc(hw, msg, wp, lp):
+        if msg == CB_MSG:
+            ev = wp & 0xFFFF
+            if ev in (WM_LBUTTONUP, WM_LBUTTONDBLCLK):
+                open_page()
+                return 0
+            if ev == WM_RBUTTONUP:
+                show_menu()
+                return 0
+        elif msg == WM_COMMAND:
+            if wp == ID_OPEN:
+                open_page()
+            elif wp == ID_EXIT:
+                quit_server()
+            return 0
+        elif msg == WM_DESTROY:
+            return 0
+        return user32.DefWindowProcW(hw, msg, wp, lp)
+
+    hinst = kernel32.GetModuleHandleW(None)
+    clsname = "RNGdleTrayWnd"
+    wc = WNDCLASS()
+    wc.lpfnWndProc = wndproc
+    wc.hInstance = hinst
+    wc.lpszClassName = clsname
+    user32.RegisterClassW(ctypes.byref(wc))
+    # 隐藏窗口（style=0 且不 ShowWindow）：无任务栏按钮，仅用于接收托盘回调
+    hwnd = user32.CreateWindowExW(0, clsname, "RNGdle", 0, 0, 0, 0, 0,
+                                  None, None, hinst, None)
+    icon = user32.LoadIconW(None, ctypes.cast(32512, wintypes.LPCWSTR))  # IDI_APPLICATION
+    nid = NOTIFYICONDATAW()
+    nid.cbSize = ctypes.sizeof(nid)
+    nid.hWnd = hwnd
+    nid.uID = 1
+    nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
+    nid.uCallbackMessage = CB_MSG
+    nid.hIcon = icon
+    nid.szTip = "RNGdle 本地服务器（左键打开配置页，右键菜单退出）"
+    if not shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(nid)):
+        print("[tray] Shell_NotifyIconW 添加失败", flush=True)
+        return
+    print("[tray] 托盘图标已添加（NIM_ADD ok，hwnd=%d）" % hwnd, flush=True)
+    # 版本协商：让右键/悬停事件可靠（Windows 7+）
+    nid.uVersion = 3
+    shell32.Shell_NotifyIconW(NIM_SETVERSION, ctypes.byref(nid))
+
+    msg = wintypes.MSG()
+    while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+        user32.TranslateMessage(ctypes.byref(msg))
+        user32.DispatchMessageW(ctypes.byref(msg))
+    try:
+        shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
+    # pythonw 无控制台运行：sys.stdout/stderr 为 None，任何 print 都会抛异常，
+    # 重定向到空设备；同时启用托盘图标（后台静默模式）。
+    if sys.stdout is None or sys.stderr is None:
+        sys.stdout = sys.stderr = open(os.devnull, "w", encoding="utf-8", errors="replace")
     print("RNGdle 本地服务器 http://127.0.0.1:%d  (Ctrl+C 退出)" % PORT, flush=True)
     # config.json 是本地文件（已 gitignore）：首次运行按默认值生成一份，方便手工编辑
     if not os.path.exists(CONFIG):
@@ -1111,6 +1288,14 @@ if __name__ == "__main__":
             start_index_build()
     except Exception as e:
         print("[index] 启动检查跳过：%s" % e)
+    # 托盘模式：pythonw 无控制台启动时，进程驻留系统托盘通知区（小箭头里），
+    # 左键打开配置页、右键菜单退出；python.exe 前台运行（有控制台）时不启用，
+    # 但可用环境变量 RNGDLE_TRAY=1 强制启用（便于前台排障观察日志）。
+    try:
+        if os.environ.get("RNGDLE_TRAY") == "1" or not _has_console():
+            threading.Thread(target=_start_tray, daemon=True).start()
+    except Exception as e:
+        print("[tray] 托盘启动失败（不影响服务）：%s" % e)
     try:
         ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
     except KeyboardInterrupt:
