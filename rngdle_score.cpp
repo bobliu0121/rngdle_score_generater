@@ -16719,6 +16719,13 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".pct-emerald{color:#10b981}\n";
     h += ".pct-orange{color:#f97316}\n";
     h += ".pct-red{color:#ef4444}\n";
+    // 等级标签 + 百分位的展示放大效果（官网 rarity:reveal 时出现；标签放大更明显）。
+    // 挂在 .meta.anim-in 下：自然动画的 rarity 阶段与刷新恢复（finish 补 anim-in）都会触发，
+    // 刷新已展示结果时只有这两个放大，其余元素直接落终态。
+    h += "@keyframes pill-pop{0%{transform:scale(1)}35%{transform:scale(1.3)}100%{transform:scale(1)}}\n";
+    h += "@keyframes pct-pop{0%{transform:scale(1)}35%{transform:scale(1.14)}100%{transform:scale(1)}}\n";
+    h += ".meta.anim-in .pill{animation:pill-pop .6s cubic-bezier(.22,.61,.36,1)}\n";
+    h += ".meta.anim-in .pct{animation:pct-pop .6s cubic-bezier(.22,.61,.36,1)}\n";
     // EP 行
     h += ".eprow{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:16px}\n";
     // 总 EP 数字用等级色 --pt（与等级 pill 同色，如 MYTHIC 为 #b91c1c / 暗色 #f87171 红色），
