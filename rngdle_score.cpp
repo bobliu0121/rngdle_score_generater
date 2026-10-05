@@ -17138,14 +17138,15 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "    g.classList.add('in');\n";
     h += "  }\n";
     // 恢复/跳过终态：h2/sub/actions/life 禁用过渡直接落位；
-    // meta 行延迟 ~150ms 到 iframe 首帧渲染就绪后再触发（finish 过早调用会让 CSS 动画冻结在
-    // 起始帧）：容器直接终态（transition none 防冻结），pill/pct 重启放大动画（scale .5/.85 弹入
-    // 放大，峰值 1.35/1.15）——刷新恢复时只展示这两个放大。
+    // meta 行延迟 ~150ms 到 iframe 首帧渲染就绪后再触发放大动画（finish 过早调用会让 CSS
+    // 动画冻结在起始帧）。注意：刷新恢复加载的是动画已播完的终态 HTML，meta 此时已正常显示，
+    // 必须先移除 anim-in 并回隐藏态（anim-wait）再触发，避免"先出现正常标签、随后被动画覆盖"；
+    // 恢复/跳过时只展示等级标签与百分位的放大。
     h += "  var h2=document.querySelector('.bd h2');if(h2){h2.style.transition='none';h2.classList.add('anim-in');}\n";
     h += "  if(sub){sub.style.transition='none';sub.classList.add('anim-in');}\n";
     h += "  if(actions){actions.style.transition='none';actions.classList.add('anim-in');}\n";
     h += "  var lf=document.querySelector('.life');if(lf){lf.style.transition='none';lf.classList.add('anim-in');}\n";
-    h += "  setTimeout(function(){var mm=document.querySelector('.meta');if(!mm)return;mm.style.transition='none';mm.classList.add('anim-in');var pp=mm.querySelector('.pill'),cc=mm.querySelector('.pct');if(pp){pp.style.animation='none';void pp.offsetWidth;pp.style.animation='';}if(cc){cc.style.animation='none';void cc.offsetWidth;cc.style.animation='';}},150);\n";
+    h += "  setTimeout(function(){var mm=document.querySelector('.meta');if(!mm)return;mm.classList.remove('anim-in');mm.classList.add('anim-wait');mm.style.transition='none';void mm.offsetWidth;mm.classList.remove('anim-wait');mm.classList.add('anim-in');var pp=mm.querySelector('.pill'),cc=mm.querySelector('.pct');if(pp){pp.style.animation='none';void pp.offsetWidth;pp.style.animation='';}if(cc){cc.style.animation='none';void cc.offsetWidth;cc.style.animation='';}},150);\n";
     h += "  epValue=total;ep.textContent=total.toLocaleString('en-US')+' EP';\n";
     h += "  var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');\n";
     h += "  if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');\n";
