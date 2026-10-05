@@ -16797,8 +16797,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 徽章卡出现动画（复刻官网 gsap fromTo：opacity 0→1、y -20→0、scale .98→1，0.35s power2.out）
     h += ".bgroup{opacity:0;transform:translateY(-20px) scale(.98)}\n";
     h += ".bgroup.in{opacity:1;transform:none;transition:opacity .35s ease,transform .35s cubic-bezier(.25,.46,.45,.94)}\n";
-    // 桌面隐藏 lifetime 行（官网桌面版无 lifetime EP，手机版才显示）
-    h += "@media(min-width:640px){.life{display:none}}\n";
+    // lifetime 行（0 EP / Your lifetime EP）在所有窗口宽度均显示（动画后期随 Share/Next roll 之后淡入）
     h += "@media(max-width:480px){main{padding:8px 8px 16px}.numcard{padding:20px 16px}}\n";
     h += "@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.numcard{animation:num-breathe 3s ease-in-out infinite!important}}\n";
     h += "</style>\n</head>\n<body>\n";
