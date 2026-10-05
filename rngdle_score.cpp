@@ -16719,13 +16719,13 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".pct-emerald{color:#10b981}\n";
     h += ".pct-orange{color:#f97316}\n";
     h += ".pct-red{color:#ef4444}\n";
-    // 等级标签 + 百分位的展示放大效果（官网 rarity:reveal 时出现；标签放大更明显）。
-    // 挂在 .meta.anim-in 下：自然动画的 rarity 阶段与刷新恢复（finish 补 anim-in）都会触发，
-    // 刷新已展示结果时只有这两个放大，其余元素直接落终态。
-    h += "@keyframes pill-pop{0%{transform:scale(1)}35%{transform:scale(1.3)}100%{transform:scale(1)}}\n";
-    h += "@keyframes pct-pop{0%{transform:scale(1)}35%{transform:scale(1.14)}100%{transform:scale(1)}}\n";
-    h += ".meta.anim-in .pill{animation:pill-pop .6s cubic-bezier(.22,.61,.36,1)}\n";
-    h += ".meta.anim-in .pct{animation:pct-pop .6s cubic-bezier(.22,.61,.36,1)}\n";
+    // 等级标签 + 百分位的展示放大效果（官网 gsap：pill scale .5→1、0.4s delay .1s back.out(3)；
+    // pct 随 meta 容器 scale .9→1 外再给轻微独立弹入）。挂在 .meta.anim-in 下：
+    // 自然动画的 rarity 阶段与刷新恢复（finish 补 anim-in）都会触发，刷新已展示结果时只有这两个放大。
+    h += "@keyframes pill-pop{0%{transform:scale(.5)}60%{transform:scale(1.12)}100%{transform:scale(1)}}\n";
+    h += "@keyframes pct-pop{0%{transform:scale(.85)}60%{transform:scale(1.07)}100%{transform:scale(1)}}\n";
+    h += ".meta.anim-in .pill{animation:pill-pop .4s cubic-bezier(.22,1.2,.36,1) .1s}\n";
+    h += ".meta.anim-in .pct{animation:pct-pop .5s cubic-bezier(.34,1.56,.64,1)}\n";
     // EP 行
     h += ".eprow{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:16px}\n";
     // 总 EP 数字用等级色 --pt（与等级 pill 同色，如 MYTHIC 为 #b91c1c / 暗色 #f87171 红色），
@@ -16786,6 +16786,10 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 抽奖动画：等待显示（隐藏）→ 显示
     h += ".anim-wait{opacity:0;transform:translateY(8px)}\n";
     h += ".anim-in{opacity:1!important;transform:none!important;transition:opacity .5s ease,transform .5s ease}\n";
+    // 等级行（meta）专属：官网 gsap fromTo {opacity:0,scale:.9}→{opacity:1,scale:1}（.5s back.out(1.7)），
+    // 从略小放大弹入（无 translateY 位移）；pill/pct 各自带更明显的放大动画（见后文 keyframes）
+    h += ".meta.anim-wait{opacity:0;transform:scale(.9)}\n";
+    h += ".meta.anim-in{transition:opacity .5s ease,transform .5s cubic-bezier(.34,1.56,.64,1)}\n";
     // 数字位定宽，滚动翻转时版式不跳动
     h += ".num>span{min-width:.62em;display:inline-block;text-align:center;transition:color .4s,text-shadow .4s,transform .4s}\n";
     // 数字滚动/揭示状态（复刻官网 digit-spin / digit-settle）
@@ -17130,11 +17134,13 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "    list.insertBefore(g,list.firstChild);\n";
     h += "    g.classList.add('in');\n";
     h += "  }\n";
-    h += "  var h2=document.querySelector('.bd h2');if(h2)h2.classList.add('anim-in');\n";
-    h += "  if(sub)sub.classList.add('anim-in');\n";
-    h += "  if(meta)meta.classList.add('anim-in');\n";
-    h += "  if(actions)actions.classList.add('anim-in');\n";
-    h += "  var lf=document.querySelector('.life');if(lf)lf.classList.add('anim-in');\n";
+    // 恢复/跳过终态：除等级标签与百分位的放大动画外，禁用一切过渡，直接落位
+    // （刷新恢复时页面只展示 pill/pct 放大，无下方滑入/淡入；徽章已在上面以无过渡方式铺满）
+    h += "  var h2=document.querySelector('.bd h2');if(h2){h2.style.transition='none';h2.classList.add('anim-in');}\n";
+    h += "  if(sub){sub.style.transition='none';sub.classList.add('anim-in');}\n";
+    h += "  if(meta){meta.style.transition='none';meta.classList.add('anim-in');}\n";
+    h += "  if(actions){actions.style.transition='none';actions.classList.add('anim-in');}\n";
+    h += "  var lf=document.querySelector('.life');if(lf){lf.style.transition='none';lf.classList.add('anim-in');}\n";
     h += "  epValue=total;ep.textContent=total.toLocaleString('en-US')+' EP';\n";
     h += "  var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');\n";
     h += "  if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');\n";
