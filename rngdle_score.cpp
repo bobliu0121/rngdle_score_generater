@@ -16719,15 +16719,16 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += ".pct-emerald{color:#10b981}\n";
     h += ".pct-orange{color:#f97316}\n";
     h += ".pct-red{color:#ef4444}\n";
-    // 等级标签 + 百分位的展示放大效果（官网 gsap verbatim）：
-    //   pill  scale .5→1，0.4s delay .1s，ease back.out(3) —— back.out(3) 峰值 ease=1.25，
-    //   作用于差值 .5 得实际峰值 scale≈1.125（不是大幅 overshoot）；
-    //   pct  官网无独立动画（随 meta 容器 scale .9→1，back.out(1.7) 峰值≈1.01，几乎不超 1），
-    //   为恢复场景可独立触发，给轻微 pct-pop（.9→1，峰值 1.03）。
-    h += "@keyframes pill-pop{0%{transform:scale(.5)}50%{transform:scale(1.12)}100%{transform:scale(1)}}\n";
-    h += "@keyframes pct-pop{0%{transform:scale(.9)}50%{transform:scale(1.03)}100%{transform:scale(1)}}\n";
-    h += ".meta.anim-in .pill{animation:pill-pop .4s cubic-bezier(.22,1.2,.36,1) .1s}\n";
-    h += ".meta.anim-in .pct{animation:pct-pop .5s cubic-bezier(.34,1.56,.64,1)}\n";
+    // 等级标签 + 百分位的展示放大效果 —— 精确复刻官网 gsap 动画（c00485 chunk verbatim）：
+    //   pill  scale .5→1，0.4s delay .1s，ease back.out(3)  → back.out(3) 峰值 ease=1.25，
+    //   实际峰值 scale≈1.125（overshoot 弹入后回落）；
+    //   pct  官网无独立动画（随 meta 容器 scale .9→1，back.out(1.7)，峰值≈1.01）。
+    // 实现：按 back.out 函数 f(p)=1+(s+1)(p-1)^3+s(p-1)^2 每 10% 采样 keyframes + linear，
+    // 精确复现幅度与速度曲线（Chrome 对 y>1 的 cubic-bezier 动画不播放，故不用 overshoot easing）。
+    h += "@keyframes pill-pop{0%{transform:scale(.5)}10%{transform:scale(.76)}20%{transform:scale(.94)}30%{transform:scale(1.05)}40%{transform:scale(1.11)}50%{transform:scale(1.13)}60%{transform:scale(1.11)}70%{transform:scale(1.08)}80%{transform:scale(1.04)}90%{transform:scale(1.01)}100%{transform:scale(1)}}\n";
+    h += "@keyframes pct-pop{0%{transform:scale(.9)}10%{transform:scale(.94)}20%{transform:scale(.97)}30%{transform:scale(.99)}40%{transform:scale(1)}50%{transform:scale(1.01)}60%{transform:scale(1.01)}70%{transform:scale(1.01)}80%{transform:scale(1)}90%{transform:scale(1)}100%{transform:scale(1)}}\n";
+    h += ".meta.anim-in .pill{animation:pill-pop .4s linear .1s}\n";
+    h += ".meta.anim-in .pct{animation:pct-pop .5s linear .01s}\n";
     // EP 行
     h += ".eprow{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:16px}\n";
     // 总 EP 数字用等级色 --pt（与等级 pill 同色，如 MYTHIC 为 #b91c1c / 暗色 #f87171 红色），
