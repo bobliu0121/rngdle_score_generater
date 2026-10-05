@@ -17119,6 +17119,24 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     //    终态与动画自然结束完全一致：数字全揭示并切回第一版框、徽章按显示序一次铺满、
     //    EP 显示总分、等级行/summary/操作行显示、颜色切到最终品质、启动呼吸灯。
     //    徽章模板序是「显示序倒序」，逐个插到最前面即得到显示序；插入时关掉过渡以免快速淡入闪烁。
+    // 恢复/跳过场景的等级标签/百分位放大动画：JS 手动动画（requestAnimationFrame 驱动）。
+    // 不用 CSS animation 的原因：恢复时 finish 过早调用会让 CSS 动画冻结在 0% 帧（停在最小态），
+    // 而"重启技巧"（animation=none→reflow→''）会渲染一帧 scale 1（正常标签闪烁）。
+    // popIn：立即应用 from 值（delay 期间保持缩小态，无正常闪现），setInterval 16ms 驱动
+    // （不依赖 rAF——iframe 渲染未就绪时 rAF 可能不回调导致动画冻结在 from 值），
+    // 按官网 gsap back.out(s) 曲线 f(p)=1+(s+1)(p-1)^3+s(p-1)^2 播放到 to，结束后清除 inline transform。
+    h += "function popIn(el,from,to,s,dur,delay){\n";
+    h += "  function ease(p){var u=p-1;return 1+(s+1)*u*u*u+s*u*u;}\n";
+    h += "  el.style.transform='scale('+from+')';\n";
+    h += "  setTimeout(function(){\n";
+    h += "    var t0=performance.now();\n";
+    h += "    var iv=setInterval(function(){\n";
+    h += "      var p=Math.min((performance.now()-t0)/dur,1);\n";
+    h += "      el.style.transform='scale('+(from+(to-from)*ease(p))+')';\n";
+    h += "      if(p>=1){clearInterval(iv);el.style.transform='';}\n";
+    h += "    },16);\n";
+    h += "  },delay);\n";
+    h += "}\n";
     h += "function finish(){\n";
     h += "  if(done)return;done=true;\n";
     h += "  for(var i=0;i<timers.length;i++)clearTimeout(timers[i]);timers=[];\n";
@@ -17149,7 +17167,10 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  if(sub){sub.style.transition='none';sub.classList.add('anim-in');}\n";
     h += "  if(actions){actions.style.transition='none';actions.classList.add('anim-in');}\n";
     h += "  var lf=document.querySelector('.life');if(lf){lf.style.transition='none';lf.classList.add('anim-in');}\n";
-    h += "  setTimeout(function(){var mm=document.querySelector('.meta');if(!mm)return;mm.classList.remove('anim-in');mm.classList.add('anim-wait');mm.style.transition='none';void mm.offsetWidth;mm.classList.remove('anim-wait');mm.classList.add('anim-in');},150);\n";
+    // meta 行延迟 ~150ms 到 iframe 首帧渲染就绪后再触发；先回隐藏态再显示（终态 HTML 的
+    // meta 已 anim-in），pill/pct 用 JS popIn 播放放大（禁用 CSS 动画避免冻结/闪烁）：
+    // 恢复/跳过时只展示等级标签（scale .5→峰值 1.125→1）与百分位（.9→1.01→1）的放大。
+    h += "  setTimeout(function(){var mm=document.querySelector('.meta');if(!mm)return;var pp=mm.querySelector('.pill'),cc=mm.querySelector('.pct');if(pp){pp.style.animation='none';popIn(pp,.5,1,3,400,100);}if(cc){cc.style.animation='none';popIn(cc,.9,1,1.7,500,10);}mm.classList.remove('anim-in');mm.classList.add('anim-wait');mm.style.transition='none';void mm.offsetWidth;mm.classList.remove('anim-wait');mm.classList.add('anim-in');},150);\n";
     h += "  epValue=total;ep.textContent=total.toLocaleString('en-US')+' EP';\n";
     h += "  var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');\n";
     h += "  if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');\n";
