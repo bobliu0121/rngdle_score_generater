@@ -162,8 +162,8 @@
         // 动画已结束：立即隐藏"跳过动画"按钮（不必等兜底轮询）
         if (s.isConnected) s.remove();
         miss = 0;
-      } else if (++miss >= 3 && s.isConnected) {
-        s.remove(); // ~1.5 秒仍没有跳过能力（静态结果页等）→ 隐藏按钮
+      } else if (++miss >= 12 && s.isConnected) {
+        s.remove(); // ~6 秒仍没有跳过能力（静态结果页等）→ 隐藏按钮
       }
     }, 500);
   }
