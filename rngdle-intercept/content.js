@@ -122,17 +122,19 @@
     };
     // 恢复场景（刷新后直接展示终态，动画已播完）不显示"跳过动画"按钮——
     // 按钮只在动画播放中（非恢复）才创建并添加；skipped=true 时保活也不再补回。
+    // 注意：s 必须最后 appendChild（在 f/c 之后）——全屏 iframe f 的 z-index 与 s 相同，
+    // 同层级后添加者在上，若 s 先添加会被 iframe 完全遮住（× 因在 f 之后添加才正常）。
     if (!recover) {
       s.onclick = () => {
         skipped = true;
         requestSkip();
         s.remove();
       };
-      document.documentElement.appendChild(s);
     }
 
     document.documentElement.appendChild(f);
     document.documentElement.appendChild(c);
+    if (!recover) document.documentElement.appendChild(s);
     f.srcdoc = html;
 
     // 恢复场景：等结果页脚本就绪（data-rngdle-skip=1）后立即派发 rngdle-skip 事件跳过动画。
