@@ -16846,7 +16846,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "<div class=\"eprow\">\n";
     if (anim) h += "<div class=\"ep-pill t-common\" data-tier=\"" + tier + "\">??? EP</div>\n";
     else h += "<div class=\"ep-pill t-" + tier + "\">" + withCommas(total) + " EP</div>\n";
-    h += "<div class=\"life\"><b>0 EP</b><span>Your lifetime EP</span></div>\n";
+    h += "<div class=\"life" + std::string(anim ? " anim-wait" : "") + "\"><b>0 EP</b><span>Your lifetime EP</span></div>\n";
     h += "</div>\n";
 
     // ===== 操作行（动画版 stats:show 时整体淡入：SHARE / NEXT ROLL / SIGN UP；静态版直接显示）=====
@@ -17095,6 +17095,8 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     // 7) stats：SHARE / NEXT ROLL / SIGN UP
     h += "t+=RT.statsDelayAfterBadges;\n";
     h += "after(function(){actions.classList.add('anim-in');},t);\n";
+    // 7b) lifetime 行（0 EP / Your lifetime EP）在 Share / Next roll 之后出现（官网同样最后淡入）
+    h += "after(function(){var lf=document.querySelector('.life');if(lf)lf.classList.add('anim-in');},t+300);\n";
     // 8) 徽章全部插入后启动高亮数字呼吸灯（逐个熄灭再逐个亮起；函数定义见后文 script）
     h += "after(function(){if(typeof initBreathing==='function')initBreathing();},t+100);\n";
     // 9) 跳过动画：清空所有排队定时器与滚动/EP 定时器，把各元素直接置为终态。
@@ -17126,6 +17128,7 @@ static void writeHtml(ll n, const std::vector<const Badge*>& earned,
     h += "  if(sub)sub.classList.add('anim-in');\n";
     h += "  if(meta)meta.classList.add('anim-in');\n";
     h += "  if(actions)actions.classList.add('anim-in');\n";
+    h += "  var lf=document.querySelector('.life');if(lf)lf.classList.add('anim-in');\n";
     h += "  epValue=total;ep.textContent=total.toLocaleString('en-US')+' EP';\n";
     h += "  var nc=document.querySelector('.numcard'),pc=document.querySelector('.ep-pill');\n";
     h += "  if(nc&&nc.getAttribute('data-tier'))nc.className=nc.className.replace(/\\bt-[a-z]+\\b/g,'')+' t-'+nc.getAttribute('data-tier');\n";
