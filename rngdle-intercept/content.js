@@ -58,22 +58,28 @@
     f.style.cssText =
       "position:fixed;inset:0;width:100vw;height:100vh;border:0;z-index:2147483647;" +
       "background:#fff;";
+    // × 与跳过动画按钮随系统主题变色：深色系统黑底白字，浅色系统白底黑字
+    const darkMode =
+      window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const btnBg = darkMode ? "rgba(17,17,17,.85)" : "rgba(255,255,255,.95)";
+    const btnFg = darkMode ? "#fff" : "#111";
+    const btnBorder = darkMode ? "none" : "1px solid #d1d5db";
     const c = document.createElement("button");
     c.id = "rngdle-local-close";
     c.textContent = "✕";
     c.title = "关闭结果，返回官网（可再次抽取）";
     c.style.cssText =
       "position:fixed;top:12px;right:12px;z-index:2147483647;width:34px;height:34px;" +
-      "border-radius:50%;border:none;background:rgba(17,17,17,.85);color:#fff;" +
-      "font:bold 16px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4);";
+      "border-radius:50%;border:" + btnBorder + ";background:" + btnBg + ";color:" + btnFg + ";" +
+      "font:bold 16px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.35);";
     const s = document.createElement("button");
     s.id = "rngdle-local-skip";
     s.textContent = "跳过动画";
     s.title = "立即显示最终结果";
     s.style.cssText =
       "position:fixed;top:54px;right:12px;z-index:2147483647;padding:7px 12px;" +
-      "border:none;border-radius:999px;background:rgba(17,17,17,.85);color:#fff;" +
-      "font:bold 12px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.4);";
+      "border:" + btnBorder + ";border-radius:999px;background:" + btnBg + ";color:" + btnFg + ";" +
+      "font:bold 12px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.35);";
 
     // 注意：content script 跑在隔离世界，读不到结果页里的 JS 全局变量 window.rngdleSkipAnim，
     // 所以一律用 DOM 通信——结果页会设 data-rngdle-skip=1 / data-rngdle-anim=running|done，
@@ -135,6 +141,8 @@
     document.documentElement.appendChild(f);
     document.documentElement.appendChild(c);
     if (!recover) document.documentElement.appendChild(s);
+    // 刷新恢复场景：注入 data-rngdle-recover=1，结果页音效脚本认此标记、不重播抽取完成音效
+    if (recover) html = html.replace(/<html/i, '<html data-rngdle-recover="1"');
     f.srcdoc = html;
 
     // 恢复场景：等结果页脚本就绪（data-rngdle-skip=1）后立即派发 rngdle-skip 事件跳过动画。

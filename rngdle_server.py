@@ -10,15 +10,19 @@
   POST /config       -> 校验并写回 config.json（JSON body；失败返回 400 与原因）
   GET /generate      -> 按 config.json 设定抽取数字，调 exe 生成结果页并返回完整 HTML
   GET /?num=<数字>   -> 指定数字生成结果页
+  GET /sounds/*      -> 音效文件夹 sounds/ 下的静态音频文件（抽取完成音效）
+  GET /sound_dirs    -> 音效子文件夹权重与音效数（配置页编辑权重用）
+  POST /sound_dirs   -> 写回 sounds/权重.txt（JSON body：{"weights": {"文件夹": 权重}}）
 抽取配置 config.json（mode：random/range/list/fixed/ep_range/tier；min/max、list、fixed；
 ep_range 用 epMin/epMax 锁定 EP 区间，tier 用 tier 锁定等级，两者需要全量 EP 索引
-ep_index.bin（首次自动用 exe --batch 扫描约 40 秒并缓存）；animation：false 时生成无抽奖动画的静态结果页）。
+ep_index.bin（首次自动用 exe --batch 扫描约 40 秒并缓存）；animation：false 时生成无抽奖动画的静态结果页；
+playSound：true 时在抽取动画播完（或点击跳过动画）随机播放 sounds/ 目录中的音效，刷新恢复不播放）。
 所有数值字段都接受 1e7 / 1.5e6 / 1_000_000 这类写法，落盘时统一写成整数。
 config.json 属于本地运行时文件（已在 .gitignore 里，配置页每次保存都会重写它）：
 缺失时用内置默认值（随机 0~999999），启动时会按默认值生成一份；仓库里的模板见 config.example.json。
 启动：python rngdle_server.py  （默认端口 8765，Ctrl+C 退出）
 """
-import os, random, subprocess, sys, time, json, threading, struct, bisect, re
+import os, random, subprocess, sys, time, json, threading, struct, bisect, re, tempfile, shutil
 from array import array
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -38,6 +42,7 @@ PORT = int(os.environ.get("RNGDLE_PORT", "8765") or "8765")   # 可用环境变�
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
 _site_cache = {"t": 0.0, "html": None}
+_site_cache_lock = threading.Lock()   # 保护 _site_cache 的并发读/写（ThreadingHTTPServer 多线程）
 
 # 等级（与 rngdle_score.cpp 的 cardTier 一致，按 EP 百分位分档）
 TIERS = ("trash", "common", "uncommon", "rare", "epic", "anomaly", "mythic")
@@ -134,11 +139,230 @@ INJECT_SCRIPT = r"""<script>
 })();
 </script>"""
 
+# ---------------------------------------------------------------------------
+# 抽取完成音效：sounds/ 目录（与 rngdle_score.exe 同目录）里放任意数量的音频文件
+# （mp3/wav/ogg/m4a/flac/aac，可放子目录），config 里 playSound=true 时，
+# 抽取动画播完（或点击跳过动画）随机播放一个；刷新恢复终态页面时不播放。
+# ---------------------------------------------------------------------------
+SND_DIR = os.path.join(BASE, "sounds")
+SOUND_EXTS = (".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac")
+WEIGHTS_FILE = os.path.join(SND_DIR, "权重.txt")
+
+
+def load_weights():
+    """解析 sounds/权重.txt 的子文件夹权重：每行 `文件夹名=权重`（权重为数字），
+    # 开头为注释，空行忽略，解析失败的行跳过。返回 {文件夹名: 权重}；
+    文件不存在或没有任何有效行时返回空 dict（全部目录等权）。"""
+    w = {}
+    try:
+        with open(WEIGHTS_FILE, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                name, sep, vs = line.rpartition("=")
+                name = name.strip()
+                vs = vs.strip()
+                if not sep or not name:
+                    continue
+                try:
+                    v = float(vs)
+                except ValueError:
+                    continue
+                w[name] = v
+    except FileNotFoundError:
+        pass
+    return w
+
+
+def list_sounds():
+    """递归扫描 sounds/ 下音效文件并按子文件夹分组，返回播放池结构：
+    [{"name": 子文件夹名, "weight": 权重, "urls": ["/sounds/...", ...]}, ...]
+    - name 为顶层子文件夹名（如"网络流行梗类"）；sounds/ 根目录下的文件归入 name=""。
+    - weight 取 sounds/权重.txt 中配置值；未配置的文件夹默认 1；权重 <= 0 的文件夹整组排除。
+    - 每组 urls 按路径排序。"""
+    groups = {}
+    if os.path.isdir(SND_DIR):
+        for root, _dirs, files in os.walk(SND_DIR):
+            for fn in sorted(files):
+                if fn.lower().endswith(SOUND_EXTS):
+                    rel = os.path.relpath(os.path.join(root, fn), SND_DIR).replace("\\", "/")
+                    parts = rel.split("/")
+                    name = parts[0] if len(parts) > 1 else ""
+                    groups.setdefault(name, []).append("/sounds/" + rel)
+    weights = load_weights()
+    pool = []
+    for name in sorted(groups):
+        w = weights.get(name, 1)
+        if w <= 0:
+            continue  # 权重 <= 0：整组不参与抽取
+        pool.append({"name": name, "weight": w, "urls": groups[name]})
+    return pool
+
+
+# 注入到结果页 <body> 末尾的音效脚本。SOUNDS 为播放池结构（含子文件夹名、权重、URL 列表），
+# ENABLED 为布尔，由服务器在返回结果页时填好（%s 占位）。三种路径统一以 DOM 属性
+# data-rngdle-anim 是否变成 done 作为触发点：
+#   · 动画自然播完 → 脚本 after(markDone, t+150) 置 done；
+#   · 点击跳过动画 → finish() 内部同样调用 markDone() 置 done；
+#   · 刷新/恢复终态页面 → 加载时 data-rngdle-anim 已是 done，视为已播放过、不再播。
+# 播放时在页面左上角浮层显示音效文件名（去掉扩展名），点击浮层可重新播放该音效；
+# 浮层 5 秒后自动淡出，点击重播会重置计时。
+SOUND_INJECT = """<script>
+(function () {
+  "use strict";
+  var SOUNDS = __RNGDLE_SOUNDS__;
+  var ENABLED = __RNGDLE_ENABLED__;
+  if (!ENABLED || !SOUNDS || !SOUNDS.length) return;
+  if (typeof Audio === "undefined") return;
+  var played = false;   // 是否已自动播放过
+  var replayReady = false; // 恢复场景是否已就绪一个可点击重播的音效
+  var de = document.documentElement;
+  // 恢复模式：父页面刷新恢复上次结果时注入 data-rngdle-recover=1。
+  // 该场景不自动播放，但左上角浮层常驻显示音效名，点击后仍可播放。
+  var recoverMode = !!(de && de.getAttribute("data-rngdle-recover") === "1");
+  // 已自动播放过判定：仅当「加载时动画已是终态 done」且非恢复模式时视为已播过
+  // （静态终态页直接打开：不自动播、也不显示浮层）。
+  if (!recoverMode && de && de.getAttribute("data-rngdle-anim") === "done") played = true;
+  // 静音预热：Chrome 自动播放策略下静音播放始终允许，让音频引擎先就绪；
+  // 用户点击过页面（域名已解锁）后，动画播完时的正式播放基本不会被拒。
+  try {
+    var warmUrl = SOUNDS[0] && SOUNDS[0].urls && SOUNDS[0].urls[0];
+    if (warmUrl) {
+      var warm = new Audio(warmUrl);
+      warm.muted = true;
+      warm.volume = 0;
+      var wp = warm.play();
+      if (wp && wp.catch) wp.catch(function () {});
+    }
+  } catch (e) {}
+  var curAudio = null;
+  // 浮层随系统主题变色：深色系统黑底白字，浅色系统白底黑字
+  var darkMode = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  var banner = document.createElement("div");
+  banner.style.cssText = "position:fixed;top:64px;left:12px;z-index:99999;display:flex;" +
+    "align-items:center;gap:7px;max-width:calc(100vw - 24px);padding:7px 13px;" +
+    "border-radius:999px;cursor:pointer;user-select:none;" +
+    "font:500 14px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;" +
+    (darkMode ? "color:#fff;background:rgba(15,23,42,.85);" :
+                "color:#111;background:rgba(255,255,255,.95);border:1px solid #d1d5db;") +
+    "box-shadow:0 3px 12px rgba(0,0,0,.3);" +
+    "opacity:0;pointer-events:none;transform:translateY(-8px);" +
+    "transition:opacity .25s ease,transform .25s ease;";
+  banner.title = "点击重新播放";
+  var icon = document.createElement("span");
+  icon.style.cssText = "display:inline-block;width:0;height:0;flex:none;" +
+    "border-left:9px solid " + (darkMode ? "#fff" : "#111") +
+    ";border-top:5px solid transparent;border-bottom:5px solid transparent;";
+  var nameEl = document.createElement("span");
+  nameEl.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+  banner.appendChild(icon);
+  banner.appendChild(nameEl);
+  document.body.appendChild(banner);
+  // 浮层常驻：动画播放完后始终显示音效名（此时"跳过动画"按钮已隐藏，浮层即常驻入口），
+  // 点击浮层重新播放；刷新恢复场景同样常驻显示。
+  function showBanner(name) {
+    nameEl.textContent = name;
+    banner.style.opacity = "1";
+    banner.style.pointerEvents = "auto";
+    banner.style.transform = "translateY(0)";
+  }
+  banner.addEventListener("click", function () {
+    if (curAudio) {
+      try { curAudio.currentTime = 0; curAudio.play(); } catch (e) {}
+      showBanner(nameEl.textContent);
+    }
+  });
+  // 加权随机：先按权重选子文件夹，再从该文件夹内随机选一个音效
+  function pickUrl() {
+    var total = 0, i;
+    for (i = 0; i < SOUNDS.length; i++) total += SOUNDS[i].weight;
+    var r = Math.random() * total;
+    for (i = 0; i < SOUNDS.length; i++) {
+      r -= SOUNDS[i].weight;
+      if (r < 0) {
+        var us = SOUNDS[i].urls;
+        return us[Math.floor(Math.random() * us.length)];
+      }
+    }
+    var fallback = SOUNDS[0] && SOUNDS[0].urls;
+    return fallback && fallback[0];
+  }
+  // 记录"本次抽取实际播放的音效"，供刷新恢复场景沿用同一个（sessionStorage 同源共享，
+  // 与父页面的 rngdle_local_roll 同生命周期，点 × 关闭后自然作废）。
+  function rememberSound(url) {
+    try { sessionStorage.setItem("rngdle_last_sound", url); } catch (e) {}
+  }
+  function playOne() {
+    if (played) return;
+    played = true;
+    var url = pickUrl();
+    if (!url) return;
+    rememberSound(url);
+    // 立即显示浮层（不依赖播放成功）：动画播完后音效标签始终显示
+    showBanner(url.split("/").pop().replace(/\\.[^.]+$/, ""));
+    try {
+      var a = new Audio(url);
+      curAudio = a;
+      // Chrome 自动播放策略：非静音 play() 在无用户手势时会被拒（NotAllowedError）。
+      // 静音自动播放始终允许——先以静音启动，播放真正开始后再解除静音出声，
+      // 从而绕开手势限制，动画播完 15 秒后仍能正常播放。
+      a.muted = true;
+      var p = a.play();
+      if (p && p.then) {
+        p.then(function () { a.muted = false; a.volume = 0.8; }).catch(function () {
+          // 极少数策略下连静音启动也被拒：等用户下一次点击页面任意处时补播
+          document.addEventListener("click", function once() {
+            a.muted = false;
+            a.volume = 0.8;
+            try { a.play(); } catch (e2) {}
+          }, { once: true, passive: true });
+        });
+      }
+    } catch (e) {}
+  }
+  // 恢复场景：沿用刷新前那次抽取播放的音效（sessionStorage 记录），没有记录时才随机选；
+  // 浮层常驻显示音效名、不自动播放，点击浮层时播放。
+  function prepareReplay() {
+    if (replayReady) return;
+    replayReady = true;
+    var url = null;
+    try { url = sessionStorage.getItem("rngdle_last_sound"); } catch (e) {}
+    if (!url) url = pickUrl();
+    if (!url) return;
+    try {
+      curAudio = new Audio(url);
+    } catch (e) { return; }
+    showBanner(url.split("/").pop().replace(/\\.[^.]+$/, ""));
+  }
+  try {
+    var mo = new MutationObserver(function () {
+      var d2 = document.documentElement;
+      if (d2 && d2.getAttribute("data-rngdle-anim") === "done") {
+        if (recoverMode) prepareReplay();
+        else playOne();
+      }
+    });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-rngdle-anim"] });
+    // 边界：恢复场景若加载时已是 done（跳过发生在监听器注册前），立即显示浮层
+    if (recoverMode) {
+      var d2 = document.documentElement;
+      if (d2 && d2.getAttribute("data-rngdle-anim") === "done") prepareReplay();
+    }
+    // 静态结果页（配置里 animation=false，无动画脚本）：没有 data-rngdle-skip 标记、
+    // 也不会有 data-rngdle-anim 的 done 事件可等——加载后直接播放音效并显示浮层
+    if (!recoverMode && !played && de && de.getAttribute("data-rngdle-skip") !== "1") {
+      playOne();
+    }
+  } catch (e) {}
+})();
+</script>"""
+
 
 # config.json 是纯本地运行时文件（已 gitignore），仓库里只有同样内容的模板 config.example.json。
 # 文件缺失时一律用这份温和默认值：随机 0~999999；服务器启动时会据此生成 config.json 方便手工编辑。
 DEFAULT_CONFIG = {"mode": "random", "min": 0, "max": 999999, "list": [], "fixed": None,
-                  "animation": True, "epMin": 1000000, "epMax": 10000000, "tier": "mythic"}
+                  "animation": True, "playSound": False, "epMin": 1000000, "epMax": 10000000, "tier": "mythic"}
 
 
 def read_config():
@@ -271,9 +495,10 @@ def normalize_config(cfg):
     tier = str(cfg.get("tier", "mythic")).strip().lower()
     if tier not in TIER_CODE:
         return None, "tier 只能是 %s" % "/".join(TIERS)
-    # 键顺序与仓库里的 config.json 保持一致：mode/min/max/list/fixed/animation [+ 新模式字段]
+    # 键顺序与仓库里的 config.json 保持一致：mode/min/max/list/fixed/animation/playSound [+ 新模式字段]
     return {"mode": mode, "min": lo, "max": hi, "list": lst, "fixed": fixed,
             "animation": bool(cfg.get("animation", True)),
+            "playSound": bool(cfg.get("playSound", False)),
             "epMin": eplo, "epMax": ephi, "tier": tier}, None
 
 
@@ -425,9 +650,14 @@ def ensure_index(timeout=1800):
 
 
 def start_index_build():
-    """让后台尽快开始建立索引（配置需要时调用，不阻塞）"""
-    if _index_state in ("building", "ready"):
-        return
+    """让后台尽快开始建立索引（服务器启动时调用，不阻塞）。
+    锁内判断 _index_state 并优先复用缓存，避免多线程下重复启动 worker /
+    读到过期状态；ensure_index 内部同样持锁，二者不会并发建两份索引。"""
+    with _index_lock:
+        if _index_state in ("building", "ready"):
+            return
+        if _index_state == "none" and _try_load_cache():
+            return
     threading.Thread(target=ensure_index, daemon=True).start()
 
 
@@ -475,7 +705,9 @@ def pick_number(cfg):
         if vals:
             return random.choice(vals)
     if mode == "ep_range":
-        return pick_by_ep_range(_cfg_int(cfg, "epMin", 0), _cfg_int(cfg, "epMax", 0))
+        # 默认值与 DEFAULT_CONFIG / normalize_config 一致（epMin=1000000, epMax=10000000）；
+        # 用户手工编辑 config.json 漏掉这两个字段时也不会退化成 [0,0] 导致报错
+        return pick_by_ep_range(_cfg_int(cfg, "epMin", 1000000), _cfg_int(cfg, "epMax", 10000000))
     if mode == "tier":
         return pick_by_tier(str(cfg.get("tier", "mythic")))
     lo = _cfg_int(cfg, "min", 1000)
@@ -487,12 +719,14 @@ def pick_number(cfg):
 
 def fetch_site():
     """抓取官网首页 HTML（5 分钟缓存）；失败返回 None（调用方降级到本地首页）"""
-    if _site_cache["html"] and time.time() - _site_cache["t"] < 300:
-        return _site_cache["html"]
+    with _site_cache_lock:
+        if _site_cache["html"] and time.time() - _site_cache["t"] < 300:
+            return _site_cache["html"]
     try:
         req = urllib.request.Request("https://www.rngdle.com/", headers={"User-Agent": UA})
         html = urllib.request.urlopen(req, timeout=30).read().decode("utf-8", "replace")
-        _site_cache.update(t=time.time(), html=html)
+        with _site_cache_lock:
+            _site_cache.update(t=time.time(), html=html)
         return html
     except Exception:
         return None
@@ -554,6 +788,28 @@ HOME = r"""<!doctype html>
   .dark .numhint.bad { color:#f87171; }
   .idxline { font-size:13px; line-height:1.5; color:#6b7280; }
   .dark .idxline { color:#9aa3ad; }
+  .sndline { display:flex; flex-direction:column; gap:6px; margin-top:4px; max-height:220px; overflow-y:auto; }
+  .sndbox { margin-top:16px; border:1px solid #e5e7eb; border-radius:10px; background:#fafafa;
+            padding:12px 14px; }
+  .dark .sndbox { border-color:#33383f; background:#1d2024; }
+  .sndbox-head { font-size:13px; font-weight:700; color:#111; letter-spacing:.3px;
+                 text-transform:none; }
+  .dark .sndbox-head { color:#f5f5f5; }
+  .sndbox-body { margin-top:8px; }
+  .sndrow { display:flex; align-items:center; gap:10px; }
+  .sndname { flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sndcnt { font-size:12px; color:#8b93a1; flex:none; }
+  .dark .sndcnt { color:#9aa3ad; }
+  .sndrow input[type=number] { width:92px; flex:none; padding:5px 8px; font-size:13px; }
+  .sndhint { margin-top:6px; font-size:12px; line-height:1.4; color:#8b93a1; }
+  .dark .sndhint { color:#9aa3ad; }
+  .sndactions { display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap; }
+  #saveWeights { padding:7px 14px; font-size:13px; font-weight:600; border:none; border-radius:8px;
+                 background:#111; color:#fff; }
+  .dark #saveWeights { background:#f5f5f5; color:#111; }
+  #wstatus { font-size:12px; color:#6b7280; }
+  #wstatus.ok { color:#059669; }
+  #wstatus.err { color:#dc2626; }
   #status.ok { color:#059669; }
   #status.err { color:#dc2626; }
   hr { border:none; border-top:1px solid #e5e7eb; margin:20px 0 18px; }
@@ -564,9 +820,6 @@ HOME = r"""<!doctype html>
          font-family:'Arial Black',Arial,sans-serif; }
   #gen:hover { transform:translateY(-2px); box-shadow:0 12px 30px rgba(78,163,255,.5); }
   #gen:disabled { opacity:.6; cursor:wait; }
-  .countdown { margin-top:12px; text-align:center; font-size:12px; letter-spacing:1px; color:#8b93a1;
-               text-transform:uppercase; }
-  .countdown b { color:#4ea3ff; font-size:14px; }
   iframe#res { position:fixed; inset:0; width:100vw; height:100vh; border:0; z-index:99; background:#fff; }
   #close { display:none; position:fixed; top:12px; right:12px; z-index:100; width:34px; height:34px;
            border-radius:50%; border:none; background:rgba(17,17,17,.85); color:#fff;
@@ -574,6 +827,11 @@ HOME = r"""<!doctype html>
   #skip { display:none; position:fixed; top:54px; right:12px; z-index:100; padding:7px 12px;
           border:none; border-radius:999px; background:rgba(17,17,17,.85); color:#fff;
           font:bold 12px/1 Arial,sans-serif; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.4); }
+  /* 结果页上的 × 与跳过动画按钮随系统主题变色：深色系统黑底白字，浅色系统白底黑字 */
+  @media (prefers-color-scheme: light) {
+    #close, #skip { background:rgba(255,255,255,.95); color:#111; border:1px solid #d1d5db;
+                    box-shadow:0 2px 10px rgba(0,0,0,.18); }
+  }
 </style>
 </head>
 <body>
@@ -640,13 +898,26 @@ HOME = r"""<!doctype html>
       <div class="field">
         <label class="check"><input type="checkbox" id="animation"> 播放抽奖动画（取消勾选则生成静态结果页）</label>
       </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" id="playSound"> 抽取完成音效（动画播完或点击跳过时随机播放 sounds/ 目录中的音效，刷新恢复不播放）</label>
+      </div>
       <div class="actions">
         <button id="save" type="button">保存配置</button>
         <span id="status"></span>
       </div>
       <hr>
       <button id="gen" type="button">Generate</button>
-      <div class="countdown">Next roll in <b id="cd">--:--:--</b></div>
+      <div class="sndbox">
+        <div class="sndbox-head">音效文件夹权重</div>
+        <div class="sndbox-body">
+          <div class="sndline" id="soundDirs">加载中…</div>
+          <div class="sndhint">数字为对应子文件夹被抽中的权重，支持小数（如 0.5；未列出为 1，≤0 不参与）；保存后写入 sounds/权重.txt。根目录音效权重固定 1。</div>
+          <div class="sndactions">
+            <button id="saveWeights" type="button">保存音效权重</button>
+            <span id="wstatus"></span>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
   <button id="close" type="button" title="关闭结果，返回配置">&times;</button>
@@ -762,6 +1033,8 @@ HOME = r"""<!doctype html>
     $("epMax").value = (cfg && cfg.epMax != null) ? cfg.epMax : 10000000;
     $("tier").value = (cfg && TIERS.indexOf(cfg.tier) >= 0) ? cfg.tier : "mythic";
     $("animation").checked = !(cfg && cfg.animation === false);
+    $("playSound").checked = !!(cfg && cfg.playSound === true);   // 音效默认关闭：仅显式 true 才勾选
+    loadWeights();
     applyMode();
     refreshHints();
   }
@@ -777,10 +1050,8 @@ HOME = r"""<!doctype html>
       .catch(function (e) { setStatus("读取配置失败：" + e.message, "err"); });
   }
 
-  function save() {
-    var btn = $("save");
-    btn.disabled = true;
-    setStatus("保存中…");
+  // 保存 config（Promise 版）：供「保存配置」按钮与 GENERATE 自动保存共用
+  function saveConfig() {
     var body = {
       mode: $("mode").value,
       min: $("min").value,
@@ -788,11 +1059,12 @@ HOME = r"""<!doctype html>
       list: $("list").value,
       fixed: $("fixed").value,
       animation: $("animation").checked,
+      playSound: $("playSound").checked,
       epMin: $("epMin").value,
       epMax: $("epMax").value,
       tier: $("tier").value
     };
-    fetch("/config", {
+    return fetch("/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
@@ -801,30 +1073,27 @@ HOME = r"""<!doctype html>
         return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; });
       })
       .then(function (res) {
-        if (!res.ok || !res.j.ok) throw new Error(res.j.error || ("HTTP 保存失败"));
+        if (!res.ok || !res.j.ok) throw new Error(res.j.error || "HTTP 保存失败");
         fill(res.j.config);
-        setStatus("已保存到 config.json", "ok");
-      })
+        return true;
+      });
+  }
+
+  function save() {
+    var btn = $("save");
+    btn.disabled = true;
+    setStatus("保存中…");
+    saveConfig()
+      .then(function () { setStatus("已保存到 config.json", "ok"); })
       .catch(function (e) { setStatus("保存失败：" + e.message, "err"); })
       .then(function () { btn.disabled = false; });
   }
 
-  // 倒计时到次日 8:00（与官网一致）
-  function tick() {
-    var now = new Date();
-    var nxt = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 8, 0, 0);
-    var d = Math.max(0, nxt - now);
-    var h = Math.floor(d / 3600000), m = Math.floor(d % 3600000 / 60000), s = Math.floor(d % 60000 / 1000);
-    function p(x) { return (x < 10 ? "0" : "") + x; }
-    $("cd").textContent = p(h) + ":" + p(m) + ":" + p(s);
-  }
-
-  // GENERATE：按 config.json 抽一次，全屏展示本地结果页
-  $("gen").addEventListener("click", function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = "Rolling…";
-    fetch("/generate", { cache: "no-store" })
+  // GENERATE：先自动保存当前配置与音效权重（未点保存按钮也会存），再按最新 config 抽一次，
+  // 全屏展示本地结果页
+  function doGenerate() {
+    var btn = $("gen");
+    return fetch("/generate", { cache: "no-store" })
       .then(function (r) {
         if (!r.ok) {
           // 抽取失败时服务器返回 JSON（如「EP 区间里没有数字」）
@@ -868,7 +1137,16 @@ HOME = r"""<!doctype html>
           if (done) { clearInterval(animWatch); $("skip").style.display = "none"; }
         }, 300);
       })
-      .catch(function (e) { alert("生成失败：" + e.message + "（请确认 rngdle_score.exe 与本服务器在同一目录）"); })
+      .catch(function (e) { alert("生成失败：" + e.message + "（请确认 rngdle_score.exe 与本服务器在同一目录）"); });
+  }
+  $("gen").addEventListener("click", function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    // 点击 GENERATE 时自动保存未保存的配置与音效权重（含权重框），保存成功后再抽取
+    Promise.all([saveConfig(), saveWeights()])
+      .then(function () { btn.textContent = "Rolling…"; return doGenerate(); })
+      .catch(function (e) { alert("保存配置失败：" + e.message + "，未执行抽取"); })
       .then(function () {
         btn.disabled = false;
         btn.textContent = "Generate";
@@ -896,9 +1174,78 @@ HOME = r"""<!doctype html>
 
   $("mode").addEventListener("change", applyMode);
   $("save").addEventListener("click", save);
+
+  // —— 音效文件夹权重编辑 ——
+  function loadWeights() {
+    fetch("/sound_dirs", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var box = $("soundDirs");
+        if (!d || !d.dirs || !d.dirs.length) {
+          box.textContent = "未发现音效子文件夹（sounds/ 下还没有文件夹，可先放入音效）";
+          return;
+        }
+        box.innerHTML = "";
+        d.dirs.forEach(function (g) {
+          var row = document.createElement("div");
+          row.className = "sndrow";
+          var nm = document.createElement("span");
+          nm.className = "sndname";
+          nm.textContent = g.name;
+          nm.title = g.name;
+          var ct = document.createElement("span");
+          ct.className = "sndcnt";
+          ct.textContent = g.count + " 个";
+          var inp = document.createElement("input");
+          inp.type = "number";
+          inp.step = "any";
+          inp.min = 0;
+          inp.value = g.weight;
+          inp.setAttribute("data-name", g.name);
+          row.appendChild(nm);
+          row.appendChild(ct);
+          row.appendChild(inp);
+          box.appendChild(row);
+        });
+      })
+      .catch(function () { $("soundDirs").textContent = "加载失败"; });
+  }
+  // 保存音效权重（Promise 版）：供「保存音效权重」按钮与 GENERATE 自动保存共用
+  function saveWeights() {
+    var ws = {};
+    var bad = false;
+    document.querySelectorAll("#soundDirs input[data-name]").forEach(function (inp) {
+      var v = inp.value.trim();
+      if (v === "") { ws[inp.getAttribute("data-name")] = 1; return; }
+      var n = Number(v);
+      if (isNaN(n) || !isFinite(n)) { bad = true; return; }
+      ws[inp.getAttribute("data-name")] = n;
+    });
+    if (bad) return Promise.reject(new Error("音效权重存在无效数字"));
+    var wbtn = $("saveWeights");
+    wbtn.disabled = true;
+    return fetch("/sound_dirs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weights: ws })
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; });
+      })
+      .then(function (res) {
+        if (!res.ok || !res.j.ok) throw new Error(res.j.error || "HTTP 保存失败");
+        return true;
+      })
+      .then(function (v) { wbtn.disabled = false; return v; },
+            function (e) { wbtn.disabled = false; throw e; });
+  }
+  function saveWeightsBtn() {
+    saveWeights()
+      .then(function () { $("wstatus").textContent = "已保存，下次抽取生效"; $("wstatus").className = "ok"; })
+      .catch(function (e) { $("wstatus").textContent = "保存失败：" + e.message; $("wstatus").className = "err"; });
+  }
+  $("saveWeights").addEventListener("click", saveWeightsBtn);
   bindHints();
-  tick();
-  setInterval(tick, 1000);
   // 配置页停在 ep_range/tier 时轮询索引状态（建立中显示百分比）
   setInterval(function () {
     if ($("f-idx").style.display !== "none") indexStatus();
@@ -919,7 +1266,10 @@ HOME = r"""<!doctype html>
       // 恢复的是动画已播完的终态 HTML，meta（等级标签/百分位）此时已 anim-in 正常显示：
       // 注入前把 meta 拉回隐藏态（anim-wait），iframe 加载瞬间即为隐藏，之后 rngdleSkipAnim
       // 的 150ms 延迟再触发放大动画——避免"先闪现正常标签、随后被动画覆盖"。
-      f.srcdoc = saved.replace(/class="meta[^"]*anim-in[^"]*"/, 'class="meta anim-wait"');
+      // 同时注入 data-rngdle-recover=1：刷新恢复场景不重播抽取完成音效（音效脚本认此标记）。
+      f.srcdoc = saved
+        .replace(/<html/i, '<html data-rngdle-recover="1"')
+        .replace(/class="meta[^"]*anim-in[^"]*"/, 'class="meta anim-wait"');
       $("close").style.display = "block";
       $("skip").style.display = "none";   // 恢复场景不重播动画，无需跳过按钮
       var t0 = Date.now();
@@ -991,6 +1341,17 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(cfg)
             else:
                 self._json({"error": err}, 500)
+        elif path == "/sound_dirs":
+            # 音效子文件夹权重（配置页编辑）：返回各文件夹当前权重与音效数
+            pool = list_sounds()
+            dirs = []
+            for g in pool:
+                if g["name"]:  # 根目录（name==""）权重固定 1，不参与权重配置
+                    dirs.append({"name": g["name"], "weight": g["weight"], "count": len(g["urls"])})
+            self._json({"dirs": dirs})
+        elif path.startswith("/sounds/"):
+            # 抽取完成音效的静态文件服务（sounds/ 目录内，带路径穿越防护）
+            self._serve_sound(path[len("/sounds/"):])
         elif path == "/index":
             # EP 索引状态（供配置页显示进度；只报告，不触发建立）
             with _index_lock:
@@ -1020,11 +1381,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(HOME)
         else:
             self._send("<h1>404</h1><p>端点：/（配置页） /config（读写配置） /generate（按配置抽取）"
-                       " /?num=数字（指定）</p>", 404)
+                       " /?num=数字（指定） /sounds/音效文件（抽取完成音效） /sound_dirs（音效权重）</p>", 404)
 
     def do_POST(self):
         path = self.path.split("?")[0]
-        if path != "/config":
+        if path not in ("/config", "/sound_dirs"):
             self._json({"ok": False, "error": "404 未知端点：%s" % path}, 404)
             return
         try:
@@ -1034,9 +1395,12 @@ class Handler(BaseHTTPRequestHandler):
         if length <= 0 or length > 65536:
             self._json({"ok": False, "error": "请求体为空或过大"}, 400)
             return
-        raw = self.rfile.read(length)
+        body = self.rfile.read(length).decode("utf-8", "replace")
+        if path == "/sound_dirs":
+            self._save_sound_weights(body)
+            return
         try:
-            submitted = json.loads(raw.decode("utf-8"))
+            submitted = json.loads(body)
         except Exception as e:
             self._json({"ok": False, "error": "JSON 解析失败：%s" % e}, 400)
             return
@@ -1049,38 +1413,128 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             self._json({"ok": False, "error": "写入 config.json 失败：%s" % e}, 500)
             return
-        print("[config] 已保存：mode=%s min=%s max=%s list=%s fixed=%s animation=%s epMin=%s epMax=%s tier=%s"
+        print("[config] 已保存：mode=%s min=%s max=%s list=%s fixed=%s animation=%s playSound=%s epMin=%s epMax=%s tier=%s"
               % (cfg["mode"], cfg["min"], cfg["max"], cfg["list"], cfg["fixed"], cfg["animation"],
-                 cfg["epMin"], cfg["epMax"], cfg["tier"]))
+                 cfg["playSound"], cfg["epMin"], cfg["epMax"], cfg["tier"]))
         if cfg["mode"] in ("ep_range", "tier"):
             # 新模式需要全量 EP 索引：保存后立刻在后台开始建立（再次保存或抽取时不会再重复扫）
             start_index_build()
         self._json({"ok": True, "config": cfg})
+
+    def _serve_sound(self, rel):
+        # self.path 是百分号编码的 URL（如 /sounds/网络流行梗类/xx.wav 会编码成 %E7%BD%91…），
+        # 先 unquote 解码；只允许 sounds/ 目录内的相对路径，用 posix 分割过滤再拼回，杜绝 ../ 穿越
+        rel = urllib.parse.unquote(rel).replace("\\", "/")
+        parts = [p for p in rel.split("/") if p not in ("", ".", "..")]
+        if not parts:
+            self._send("<h1>403</h1>", 403)
+            return
+        fp = os.path.normpath(os.path.join(SND_DIR, *parts))
+        if not os.path.isfile(fp):
+            self._send("<h1>404</h1>", 404)
+            return
+        ext = os.path.splitext(fp)[1].lower()
+        ctype = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg",
+                 ".m4a": "audio/mp4", ".flac": "audio/flac",
+                 ".aac": "audio/aac"}.get(ext, "application/octet-stream")
+        try:
+            with open(fp, "rb") as f:
+                data = f.read()
+        except OSError:
+            self._send("<h1>500</h1>", 500)
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        try:
+            self.wfile.write(data)
+        except BrokenPipeError:
+            pass
+
+    def _save_sound_weights(self, body):
+        """POST /sound_dirs：把 {weights: {文件夹名: 权重}} 写回 sounds/权重.txt。
+        权重必须是有限数字（可为小数）；≤0 表示该文件夹不参与抽取。"""
+        try:
+            data = json.loads(body)
+        except Exception:
+            self._json({"ok": False, "error": "JSON 解析失败"}, 400)
+            return
+        ws = data.get("weights")
+        if not isinstance(ws, dict):
+            self._json({"ok": False, "error": "缺少 weights 对象"}, 400)
+            return
+        lines = [
+            "# 音效子文件夹权重：每行 `文件夹名=权重数字`，# 开头为注释，空行忽略。",
+            "# 未列出的文件夹权重为 1；权重 <= 0 的文件夹不参与抽取。",
+            "# 本文件由配置页「保存音效权重」生成，也可手工编辑。",
+        ]
+        import math as _math
+        for name in sorted(ws):
+            v = ws[name]
+            if not isinstance(v, (int, float)) or isinstance(v, bool) or not _math.isfinite(v):
+                self._json({"ok": False, "error": "权重值必须是有限数字：" + str(name)}, 400)
+                return
+            lines.append("%s=%s" % (name, v))
+        os.makedirs(SND_DIR, exist_ok=True)
+        with open(WEIGHTS_FILE, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+        self._json({"ok": True, "dirs": [g["name"] for g in list_sounds() if g["name"]]})
 
     def _serve_num(self, num):
         html = self._run_exe(num)
         if html is None:
             self._send("<h1>500</h1><p>rngdle_score.exe 执行失败，请确认其位于本目录。</p>", 500)
         else:
-            self._send(html)
+            self._send(self._inject_sound(html))
+
+    def _inject_sound(self, html):
+        """把抽取完成音效脚本注入结果页 </body> 前（动画脚本已先于该位置执行）。"""
+        if not html or "</body>" not in html:
+            return html
+        cfg = load_config()
+        pool = list_sounds()
+        # 音效 URL 必须用绝对地址：浏览器插件是在官网页面用 srcdoc iframe 展示结果页，
+        # 相对路径 /sounds/... 在 iframe 里会按官网域名解析成 rngdle.com/sounds/... → 404，
+        # 导致无声、浮层不显示。按请求 Host 拼成 http://host/sounds/... 后任何页面都能正确加载。
+        host = (self.headers.get("Host") or "127.0.0.1:8765").strip()
+        base = "http://" + host
+        pool = [dict(g, urls=[base + u for u in g["urls"]]) for g in pool]
+        # 用占位符字符串替换而非 % 格式化：sounds/ 下若存在含 % 的文件名/子文件夹名
+        # （如 "100%.wav"），json.dumps 会把 % 带进替换串，% 格式化会抛 ValueError
+        # 导致整个结果页注入失败（无声、无浮层）
+        script = (SOUND_INJECT
+                  .replace("__RNGDLE_SOUNDS__", json.dumps(pool))
+                  .replace("__RNGDLE_ENABLED__", "true" if cfg.get("playSound", False) else "false"))
+        return html.replace("</body>", script + "</body>", 1)
 
     def _run_exe(self, num):
         # 用 --no-open 调用：仅生成 rngdle_result.html，不弹浏览器；
         # CREATE_NO_WINDOW 让计分 exe 以无窗口方式运行，不额外弹出黑色控制台。
         # config.json 的 animation=false 时附加 --no-anim：生成无抽奖动画的静态结果页
+        # 并发安全：ThreadingHTTPServer 多线程下若共用 BASE/rngdle_result.html，
+        # 请求 A 的 exe 未写完、请求 B 就读取会串台。这里每个请求用独立的临时目录
+        # 让 exe 写自己的 rngdle_result.html，读完立即删除，互不干扰。
         args = [EXE, "--no-open"]
         if not load_config().get("animation", True):
             args.append("--no-anim")
+        tmpdir = None
         try:
+            tmpdir = tempfile.mkdtemp(prefix="rngdle_gen_", dir=BASE)
             subprocess.run(args, input=("%d\n" % num).encode("utf-8"),
-                           cwd=BASE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           cwd=tmpdir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                            creationflags=subprocess.CREATE_NO_WINDOW,
                            timeout=60)
-            with open(RESULT, "r", encoding="utf-8") as f:
+            with open(os.path.join(tmpdir, "rngdle_result.html"), "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             print("[err]", e)
             return None
+        finally:
+            if tmpdir:
+                shutil.rmtree(tmpdir, ignore_errors=True)
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -1281,11 +1735,11 @@ if __name__ == "__main__":
             print("[config] 未找到 config.json，已按默认值生成（随机 0~999999，可手工编辑）", flush=True)
         except Exception as e:
             print("[config] 生成 config.json 失败：%s" % e, flush=True)
-    # 配置里用到 ep_range/tier 且索引缓存不存在时，启动就在后台扫描（不阻塞服务）
+    # EP 索引在服务器启动后立刻后台生成：已有 ep_index.bin 缓存则秒载入就绪，
+    # 没有则全量扫描 0~1000000（约 40 秒，不阻塞服务）；exe 变化后自动重建
     try:
-        if load_config().get("mode") in ("ep_range", "tier") and not os.path.exists(INDEX):
-            print("[index] 当前配置需要 EP 索引，正在后台建立（仅首次，约 40 秒）…")
-            start_index_build()
+        print("[index] 启动后台建立 EP 索引（首次约 40 秒，不阻塞服务）…")
+        start_index_build()
     except Exception as e:
         print("[index] 启动检查跳过：%s" % e)
     # 托盘模式：pythonw 无控制台启动时，进程驻留系统托盘通知区（小箭头里），

@@ -5,6 +5,7 @@
   "list": [],
   "fixed": null,
   "animation": true,
+  "playSound": false,
   "epMin": 1000000,
   "epMax": 10000000,
   "tier": "mythic"

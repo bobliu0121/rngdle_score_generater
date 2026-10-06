@@ -17,6 +17,10 @@ ep_index.bin.*
 # 抽取配置：本地运行时文件（配置页每次保存都会重写），仓库里只保留模板 config.example.json
 config.json
 
+# 抽取完成音效：sounds/ 目录保留说明文件，本地音频文件不入库
+sounds/*
+!sounds/说明.txt
+
 # Python 缓存
 __pycache__/
 

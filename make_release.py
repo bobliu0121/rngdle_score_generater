@@ -22,7 +22,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 # 便携运行时来源：默认取运行本脚本的解释器所在安装目录（即 sys.base_prefix）
 PYSRC = os.environ.get("RNGDLE_PYSRC") or sys.base_prefix
 REL = os.path.join(BASE, "release", "RNGdle")
-VERSION = "1.0.9"
+VERSION = "1.1.0"
 ZIP = os.path.join(BASE, "RNGdle_standalone_v%s_win64.zip" % VERSION)
 
 # Lib 里不需要的大目录（tkinter/tcl 与测试套件；服务器只用标准库的网络/JSON/线程部分）
@@ -61,14 +61,20 @@ README_TXT = """RNGdle 本地计分器 —— 免安装使用说明
       · 选抽取模式（随机区间 / 候选列表 / 固定数字 / EP 区间 / 指定等级）
       · 保存配置 → 点 GENERATE 按配置抽一次
       · 结果页右上角 ✕ 返回配置页；「跳过动画」直接看最终结果
+      · 抽取完成音效：把音效文件（mp3/wav/ogg/m4a/flac/aac）放进 sounds/ 文件夹，
+        每次抽取动画播完（或点击跳过动画）会随机播放其中一个（播放时左上角浮层
+        显示音效名，点击浮层可重新播放）；配置页可取消勾选「抽取完成音效」关闭，
+        刷新恢复结果页时不播放。sounds/ 里可放 权重.txt 配置各子文件夹的抽取权重
+        （每行：文件夹名=权重数字，支持小数如 0.5；未列出者为 1；权重 <= 0 不参与）。
     启动后没有任何窗口弹出：服务器静默驻留系统托盘通知区
     （默认收在任务栏右下角的小箭头里，展开可见 RNGdle 图标），
     左键单击托盘图标打开配置页，右键菜单可退出服务。
     想在前台运行看日志，可手动启动：
         runtime\\python.exe rngdle_server.py
     说明：
-      · EP 区间 / 指定等级两种模式首次使用会扫描全部 100 万个数字建立索引，
-        约 40 秒（只做一次，缓存在 ep_index.bin，约 20MB，可随时删除重建）。
+      · EP 区间 / 指定等级两种模式依赖全量 EP 索引：服务器启动后会自动在后台
+        扫描全部 100 万个数字建立（约 40 秒，不阻塞服务，只做一次，
+        缓存在 ep_index.bin，约 20MB，可随时删除重建）。
       · 数值可以写成 1e7、1.5e6 这种形式，界面会实时显示解析结果。
       · 想换端口：先执行 set RNGDLE_PORT=8770 再启动。
 
@@ -87,6 +93,7 @@ README_TXT = """RNGdle 本地计分器 —— 免安装使用说明
     config.example.json   配置模板；首次运行会生成 config.json
     ep_index.bin          全量 EP 索引缓存（自动生成）
     rngdle_result.html    结果页（每次运行覆盖）
+    sounds\\              抽取完成音效文件夹（放入 mp3/wav/ogg 等，可加子文件夹与权重.txt）
 
 五、常见问题
     · 杀毒软件提示：静态链接的 exe 偶尔会被误报，加白名单即可。
@@ -161,6 +168,31 @@ def main():
     for f in ("rngdle_score.exe", "rngdle_server.py", "config.example.json", "README.md"):
         shutil.copy2(os.path.join(BASE, f), os.path.join(REL, f))
     shutil.copytree(os.path.join(BASE, "rngdle-intercept"), os.path.join(REL, "rngdle-intercept"))
+
+    # 抽取完成音效文件夹：创建空目录 + 放置说明与权重模板（zip 打包只写文件，说明保证目录存在）
+    snd = os.path.join(REL, "sounds")
+    os.makedirs(snd, exist_ok=True)
+    with open(os.path.join(snd, "说明.txt"), "w", encoding="utf-8-sig", newline="\r\n") as f:
+        f.write(
+            "把要播放的抽取完成音效文件放在本文件夹（mp3/wav/ogg/m4a/flac/aac，可放子文件夹）。\n"
+            "每次抽取动画播完（或点击跳过动画）会随机播放其中一个；播放时左上角浮层显示音效名，\n"
+            "点击浮层可重新播放；配置页取消勾选「抽取完成音效」即可关闭；刷新恢复结果页时不播放。\n"
+            "\n"
+            "【子文件夹权重】可新建本目录下的 权重.txt 配置每个子文件夹被抽中的概率，格式：\n"
+            "    文件夹名=权重数字（支持小数，如 0.5）\n"
+            "    # 以 # 开头的行是注释，空行忽略；未列出的文件夹权重为 1；权重 <= 0 的文件夹不参与抽取\n"
+            "示例（网络流行梗类被抽中的概率是别人声反应类的 3 倍）：\n"
+            "    网络流行梗类=3\n"
+            "    人声反应类=1\n"
+            "播放时先按权重随机选中一个子文件夹，再从该文件夹内随机选一个音效；\n"
+            "权重.txt 不存在或没有有效内容时，所有文件夹等权。\n")
+    with open(os.path.join(snd, "权重.txt"), "w", encoding="utf-8-sig", newline="\r\n") as f:
+        f.write(
+            "# 音效子文件夹权重：每行 `文件夹名=权重数字`，# 开头为注释，空行忽略。\n"
+            "# 未列出的文件夹权重为 1；权重 <= 0 的文件夹不参与抽取。\n"
+            "# 示例：\n"
+            "# 网络流行梗类=3\n"
+            "# 人声反应类=1\n")
 
     with open(os.path.join(REL, "启动服务器.bat"), "w", encoding="utf-8", newline="\r\n") as f:
         f.write(BAT)
