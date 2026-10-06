@@ -3,8 +3,8 @@
 
 作用：调用 rngdle_score.exe 生成结果页（含官网同款抽奖动画），供浏览器取用。
 端点：
-  GET /              -> 本地配置页（编辑 config.json 的抽取模式/区间/列表/固定值/动画开关，
-                         保留 GENERATE 按钮与倒计时；设环境变量 RNGDLE_PROXY=1 时改为
+  GET /              -> 本地配置页（编辑 config.json 的抽取模式/区间/列表/固定值/动画/音效开关，
+                         保留 GENERATE 按钮；设环境变量 RNGDLE_PROXY=1 时改为
                          代理官网真实页面并注入拦截脚本）
   GET /config        -> 返回当前 config.json 原文（供配置页回填）
   POST /config       -> 校验并写回 config.json（JSON body；失败返回 400 与原因）
@@ -15,11 +15,17 @@
   POST /sound_dirs   -> 写回 sounds/权重.txt（JSON body：{"weights": {"文件夹": 权重}}）
 抽取配置 config.json（mode：random/range/list/fixed/ep_range/tier；min/max、list、fixed；
 ep_range 用 epMin/epMax 锁定 EP 区间，tier 用 tier 锁定等级，两者需要全量 EP 索引
-ep_index.bin（首次自动用 exe --batch 扫描约 40 秒并缓存）；animation：false 时生成无抽奖动画的静态结果页；
-playSound：true 时在抽取动画播完（或点击跳过动画）随机播放 sounds/ 目录中的音效，刷新恢复不播放）。
+ep_index.bin（服务器启动后即自动在后台用 exe --batch 扫描 0~1000000 约 40 秒并缓存，
+不阻塞服务，exe 变化后按指纹自动重建）；animation：false 时生成无抽奖动画的静态结果页；
+playSound：true 时在抽取动画播完（或点击跳过动画，静态页加载即播）随机播放 sounds/ 目录
+子文件夹中的音效，播放时左上角浮层常驻显示音效名、点击可重播，浮层与按钮随系统主题变色；
+刷新恢复结果页不自动重播，但显示音效名，点击播放与上次同一音效（sessionStorage 记忆）；
+权重支持小数（sounds/权重.txt，未列出者权重 1，<=0 不参与抽取）。
 所有数值字段都接受 1e7 / 1.5e6 / 1_000_000 这类写法，落盘时统一写成整数。
 config.json 属于本地运行时文件（已在 .gitignore 里，配置页每次保存都会重写它）：
 缺失时用内置默认值（随机 0~999999），启动时会按默认值生成一份；仓库里的模板见 config.example.json。
+并发安全：ThreadingHTTPServer 多线程下每个请求用独立临时目录运行 exe（结果页互不串台），
+音效注入用占位符字符串替换（文件名含 % 不崩溃），共享状态（_site_cache/_index_state）加锁保护。
 启动：python rngdle_server.py  （默认端口 8765，Ctrl+C 退出）
 """
 import os, random, subprocess, sys, time, json, threading, struct, bisect, re, tempfile, shutil
@@ -201,13 +207,15 @@ def list_sounds():
 
 
 # 注入到结果页 <body> 末尾的音效脚本。SOUNDS 为播放池结构（含子文件夹名、权重、URL 列表），
-# ENABLED 为布尔，由服务器在返回结果页时填好（%s 占位）。三种路径统一以 DOM 属性
-# data-rngdle-anim 是否变成 done 作为触发点：
-#   · 动画自然播完 → 脚本 after(markDone, t+150) 置 done；
-#   · 点击跳过动画 → finish() 内部同样调用 markDone() 置 done；
-#   · 刷新/恢复终态页面 → 加载时 data-rngdle-anim 已是 done，视为已播放过、不再播。
-# 播放时在页面左上角浮层显示音效文件名（去掉扩展名），点击浮层可重新播放该音效；
-# 浮层 5 秒后自动淡出，点击重播会重置计时。
+# ENABLED 为布尔，由服务器在返回结果页时填好（占位符 __RNGDLE_SOUNDS__ / __RNGDLE_ENABLED__）。
+# 触发点（三种路径）：
+#   · 动画自然播完 → 动画脚本置 data-rngdle-anim=done，MutationObserver 捕获后播放；
+#   · 点击跳过动画 → finish() 同样置 done，Observer 捕获后播放；
+#   · 无动画静态结果页（animation=false，没有 data-rngdle-skip 标记）→ 加载后立即播放；
+#   · 刷新/恢复终态页面 → 加载时已是 done 且带 data-rngdle-recover=1，不自动播，
+#     但常驻浮层显示音效名，点击后播放与上次同一音效（sessionStorage.rngdle_last_sound）。
+# 播放时在页面左上角浮层常驻显示音效文件名（去掉扩展名），点击浮层可重新播放；
+# 浮层与按钮随系统主题变色（深色黑底白字 / 浅色白底黑字）。
 SOUND_INJECT = """<script>
 (function () {
   "use strict";
